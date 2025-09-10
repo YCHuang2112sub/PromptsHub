@@ -4,6 +4,8 @@
 
 A clean, minimal tool for clipboard monitoring, screen OCR, and LLM text processing with Windows screen capture protection.
 
+![PromptHub Interface](image/example_interface.PNG)
+
 ## 🧠 The AlphaMind Philosophy
 
 **Alicization** - Our core principle of creating AI that transcends simple command execution to achieve true human-AI symbiosis. Like the concept from Sword Art Online, we're building technology that doesn't just respond to commands, but develops genuine understanding of human intent and adapts to serve human creativity and productivity.

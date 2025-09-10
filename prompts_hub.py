@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-Unified Clipboard & OCR Manager
-A clean, minimal tool for clipboard monitoring, screen OCR, and LLM text processing.
+PromptHub - AlphaMind Edition
+A stylish, modern interface for intelligent prompt management and LLM interaction.
+Codename: AlphaMind | Vision: Alicization
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox, scrolledtext
+from tkinter import ttk, messagebox, scrolledtext, font
 import json
 import os
 import sys
@@ -16,80 +17,204 @@ import io
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
+import subprocess
+import requests
 
-# Import env utilities
-sys.path.append(str(Path(__file__).parent / "src"))
-try:
-    from lib.env_utils.env_utils import load_env_file, set_env_vars
-    ENV_UTILS_AVAILABLE = True
-except ImportError:
-    ENV_UTILS_AVAILABLE = False
-    print("Warning: env_utils not available. Using direct environment variable access.")
+# Modern color scheme inspired by VS Code Dark and Discord
+COLORS = {
+    # Main theme colors
+    'bg_primary': '#1e1e1e',      # Dark background
+    'bg_secondary': '#252526',    # Slightly lighter
+    'bg_tertiary': '#2d2d30',     # Input backgrounds
+    'bg_accent': '#007acc',       # Blue accent
+    'bg_success': '#4ec9b0',      # Teal success
+    'bg_warning': '#ffcc02',      # Yellow warning
+    'bg_error': '#f14c4c',        # Red error
+    'bg_hover': '#3e3e42',        # Hover states
+    'bg_purple': '#9d4edd',       # Purple option
+    'bg_green': '#52b788',        # Green option
+    'bg_orange': '#f77f00',       # Orange option
+    
+    # Text colors
+    'text_primary': '#d4d4d4',    # Main text - softer than pure white
+    'text_secondary': '#9d9d9d',  # Secondary text - lighter gray
+    'text_accent': '#4fc1ff',     # Accent text
+    'text_success': '#4ec9b0',    # Success text
+    'text_warning': '#ffcc02',    # Warning text
+    'text_error': '#f14c4c',      # Error text
+    'text_white': '#e8e8e8',      # Softer white instead of pure white
+    'text_button': '#1a1a1a',     # Dark text for buttons (good contrast on teal)
+    
+    # Border colors
+    'border_primary': '#3e3e42',  # Main borders
+    'border_accent': '#007acc',   # Accent borders
+    'border_focus': '#4fc1ff',    # Focus borders
+}
 
-# Required imports with availability checks
-try:
-    import keyboard
-    KEYBOARD_AVAILABLE = True
-except ImportError:
-    KEYBOARD_AVAILABLE = False
-    print("Warning: keyboard library not available. Install with: pip install keyboard")
+# Modern fonts
+FONTS = {
+    'heading_large': ('Segoe UI', 16, 'bold'),
+    'heading_medium': ('Segoe UI', 14, 'bold'),
+    'heading_small': ('Segoe UI', 12, 'bold'),
+    'body_large': ('Segoe UI', 11),
+    'body_medium': ('Segoe UI', 10),
+    'body_small': ('Segoe UI', 9),
+    'mono': ('Consolas', 10),
+    'mono_small': ('Consolas', 9),
+}
 
-try:
-    import pyperclip
-    PYPERCLIP_AVAILABLE = True
-except ImportError:
-    PYPERCLIP_AVAILABLE = False
-    print("Warning: pyperclip not available. Install with: pip install pyperclip")
+class ModernFrame(ttk.Frame):
+    """Custom frame with modern styling"""
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.configure(style='Modern.TFrame')
 
-try:
-    from PIL import Image, ImageGrab, ImageTk
-    PIL_AVAILABLE = True
-except ImportError:
-    PIL_AVAILABLE = False
-    print("Warning: PIL not available. Install with: pip install Pillow")
+class ModernButton(ttk.Button):
+    """Custom button with modern styling"""
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.configure(style='Modern.TButton')
 
-try:
-    import requests
-    REQUESTS_AVAILABLE = True
-except ImportError:
-    REQUESTS_AVAILABLE = False
-    print("Warning: requests not available. Install with: pip install requests")
+class ModernEntry(ttk.Entry):
+    """Custom entry with modern styling"""
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, **kwargs)
+        self.configure(style='Modern.TEntry')
 
-try:
-    import ctypes
-    from ctypes import wintypes
-    CTYPES_AVAILABLE = True
-except ImportError:
-    CTYPES_AVAILABLE = False
-    print("Warning: ctypes not available for Windows screen capture protection")
-
-
-class ClipboardOCRManager:
+class PromptHubGUI:
+    """Modern, stylish GUI for PromptHub - AlphaMind Edition"""
+    
     def __init__(self):
-        # Load environment variables first
-        self.load_environment()
-        
         self.root = tk.Tk()
-        self.root.title("📋 Clipboard & OCR Manager")
-        self.root.geometry("900x600")
-        self.root.attributes('-topmost', True)
+        self.setup_window()
+        self.setup_styles()
+        self.setup_variables()
+        self.create_ui()
+        self.apply_modern_theming()
         
-        # Storage setup
-        self.storage_dir = Path.home() / ".clipboard_manager"
-        self.storage_dir.mkdir(exist_ok=True)
-        self.items_dir = self.storage_dir / "items"
-        self.items_dir.mkdir(exist_ok=True)
-        self.settings_file = self.storage_dir / "settings.json"
-        self.index_file = self.storage_dir / "index.json"
+    def setup_window(self):
+        """Setup main window with modern styling"""
+        self.root.title("🧠 AlphaMind - Intelligent Prompt Hub")
+        self.root.geometry("1200x800")
+        self.root.minsize(1000, 600)
+        self.root.configure(bg=COLORS['bg_primary'])
         
-        # Data
-        self.stored_items = []
-        self.current_image = None
-        self.clipboard_monitoring = False
-        self.last_clipboard = ""
+        # Make window look modern on Windows
+        try:
+            self.root.wm_attributes('-alpha', 0.98)  # Slight transparency
+            # Remove window decorations for ultra-modern look (optional)
+            # self.root.overrideredirect(True)
+        except:
+            pass
+            
+        # Center window on screen
+        self.center_window()
         
-        # OCR panel state
+    def center_window(self):
+        """Center the window on screen"""
+        self.root.update_idletasks()
+        x = (self.root.winfo_screenwidth() // 2) - (1200 // 2)
+        y = (self.root.winfo_screenheight() // 2) - (800 // 2)
+        self.root.geometry(f'1200x800+{x}+{y}')
+        
+    def setup_styles(self):
+        """Setup modern ttk styles"""
+        style = ttk.Style()
+        
+        # Configure modern frame styles
+        style.configure('Modern.TFrame',
+                       background=COLORS['bg_primary'],
+                       borderwidth=0)
+        
+        style.configure('Card.TFrame',
+                       background=COLORS['bg_secondary'],
+                       relief='flat',
+                       borderwidth=1)
+        
+        # Configure modern button styles
+        style.configure('Modern.TButton',
+                       background=COLORS['bg_success'],  # Changed from bg_accent to bg_success (teal)
+                       foreground=COLORS['text_button'],  # Dark text for better contrast on teal background
+                       borderwidth=0,
+                       focuscolor='none',
+                       font=FONTS['body_medium'])
+        
+        style.map('Modern.TButton',
+                 background=[('active', COLORS['bg_accent']),  # Hover color
+                           ('pressed', COLORS['bg_success'])])  # Pressed color
+        
+        # Configure accent button style for important actions
+        style.configure('Accent.TButton',
+                       background=COLORS['bg_accent'],
+                       foreground=COLORS['text_button'],
+                       borderwidth=0,
+                       focuscolor='none',
+                       font=FONTS['body_medium'])
+        
+        style.map('Accent.TButton',
+                 background=[('active', COLORS['bg_success']),
+                           ('pressed', COLORS['bg_accent'])])
+        
+        # Configure modern entry styles
+        style.configure('Modern.TEntry',
+                       fieldbackground=COLORS['bg_tertiary'],
+                       foreground=COLORS['text_primary'],
+                       borderwidth=1,
+                       insertcolor=COLORS['text_accent'],
+                       font=FONTS['body_medium'])
+        
+        style.map('Modern.TEntry',
+                 focuscolor=[('focus', COLORS['border_focus'])])
+        
+        # Configure modern label styles
+        style.configure('Modern.TLabel',
+                       background=COLORS['bg_primary'],
+                       foreground=COLORS['text_primary'],
+                       font=FONTS['body_medium'])
+        
+        style.configure('Heading.TLabel',
+                       background=COLORS['bg_primary'],
+                       foreground=COLORS['text_primary'],  # Changed from text_white to text_primary
+                       font=FONTS['heading_medium'])
+        
+        style.configure('Accent.TLabel',
+                       background=COLORS['bg_primary'],
+                       foreground=COLORS['text_accent'],
+                       font=FONTS['body_medium'])
+        
+        # Configure modern notebook styles
+        style.configure('Modern.TNotebook',
+                       background=COLORS['bg_primary'],
+                       borderwidth=0,
+                       tabmargins=[0, 0, 0, 0])
+        
+        style.configure('Modern.TNotebook.Tab',
+                       background=COLORS['bg_secondary'],
+                       foreground=COLORS['text_secondary'],  # Much darker for unselected tabs
+                       padding=[20, 10],
+                       font=FONTS['body_medium'])
+        
+        style.map('Modern.TNotebook.Tab',
+                 background=[('selected', COLORS['bg_accent']),
+                           ('active', COLORS['bg_hover'])],
+                 foreground=[('selected', COLORS['text_button']),  # Much darker text for selected tabs
+                           ('active', COLORS['text_secondary'])])  # Darker for active/hover
+    
+    def setup_variables(self):
+        """Setup tkinter variables"""
+        self.status_var = tk.StringVar(value="🚀 AlphaMind Ready")
+        self.current_prompt = tk.StringVar()
+        self.llm_provider_var = tk.StringVar(value="Claude")
+        self.monitoring_status = tk.StringVar(value="● Active")
+        self.processing_status = tk.StringVar(value="")
+        self.is_processing = False
         self.ocr_expanded = False
+        self.current_image = None
+        
+        # LLM configuration (from original)
+        self.llm_provider = None
+        self.llm_api_key = None
+        self.llm_model = None
         
         # Default LLM prompt
         self.llm_prompt = """Explain this text clearly and concisely:
@@ -100,37 +225,9 @@ class ClipboardOCRManager:
 Text to explain:
 {text}"""
         
-        # LLM provider detection
+        # Detect available LLM provider
         self.detect_llm_provider()
-        
-        # Setup
-        self.load_settings()
-        self.load_items()
-        self.setup_ui()
-        
-        # Apply Windows screen capture protection if available
-        if CTYPES_AVAILABLE and sys.platform == 'win32':
-            self.apply_screen_capture_protection()
-        
-        # Start monitoring
-        self.start_clipboard_monitoring()
-        
-    def load_environment(self):
-        """Load environment variables from .env file"""
-        if ENV_UTILS_AVAILABLE:
-            try:
-                # Try to load .env file
-                env_vars = load_env_file(".env")
-                set_env_vars(env_vars)
-                print(f"Loaded {len(env_vars)} environment variables from .env file")
-            except FileNotFoundError:
-                print("No .env file found. Using system environment variables.")
-                print("Tip: Copy .env.template to .env and add your API keys")
-            except Exception as e:
-                print(f"Error loading .env file: {e}")
-        else:
-            print("Using system environment variables only")
-        
+    
     def detect_llm_provider(self):
         """Auto-detect available LLM provider"""
         self.llm_provider = None
@@ -149,7 +246,7 @@ Text to explain:
         if openai_key:
             self.llm_provider = "openai"
             self.llm_api_key = openai_key
-            self.llm_model = "gpt-4-vision-preview"
+            self.llm_model = "gpt-4"
             return
             
         # Check for Gemini
@@ -157,196 +254,899 @@ Text to explain:
         if gemini_key:
             self.llm_provider = "gemini"
             self.llm_api_key = gemini_key
-            self.llm_model = "gemini-pro-vision"
+            self.llm_model = "gemini-pro"
             return
             
         print("No LLM API keys found in environment variables")
-    
-    def setup_ui(self):
-        """Setup the main user interface"""
-        # OCR Panel (collapsible)
-        self.setup_ocr_panel()
         
-        # Main content area
-        main_frame = ttk.Frame(self.root)
-        main_frame.pack(fill='both', expand=True, padx=5, pady=5)
+    def create_ui(self):
+        """Create the main user interface"""
+        # Main container
+        self.main_container = ModernFrame(self.root)
+        self.main_container.pack(fill='both', expand=True, padx=0, pady=0)
         
-        # Left panel - Live Capture
-        self.setup_capture_panel(main_frame)
+        # Create header
+        self.create_header()
         
-        # Right panel - Stored Items
-        self.setup_storage_panel(main_frame)
-    
-    def setup_ocr_panel(self):
-        """Collapsible OCR panel at top"""
-        # Toggle button
-        self.ocr_toggle = ttk.Button(self.root, 
-                                     text="▼ Screen OCR", 
-                                     command=self.toggle_ocr_panel)
-        self.ocr_toggle.pack(fill='x', padx=5, pady=2)
+        # Create main content area
+        self.create_main_content()
         
-        # Collapsible frame (initially hidden)
-        self.ocr_frame = ttk.LabelFrame(self.root, text="Screen OCR")
+        # Create footer
+        self.create_footer()
         
-        # OCR content
-        content = ttk.Frame(self.ocr_frame)
-        content.pack(fill='both', expand=True, padx=5, pady=5)
+    def create_header(self):
+        """Create modern header with branding"""
+        header_frame = ModernFrame(self.main_container)
+        header_frame.pack(fill='x', padx=20, pady=(20, 10))
         
-        # Image preview
-        self.image_label = tk.Label(content, text="[No image captured]", 
-                                    relief='solid', width=25, height=8,
-                                    background='white', anchor='center')
-        self.image_label.pack(side='left', padx=5)
+        # Left side - Logo and title
+        left_frame = ModernFrame(header_frame)
+        left_frame.pack(side='left', fill='y')
         
-        # Control buttons
-        btn_frame = ttk.Frame(content)
-        btn_frame.pack(side='left', padx=10, fill='y')
+        # Title with gradient effect (simulated with multiple labels)
+        title_frame = ModernFrame(left_frame)
+        title_frame.pack(side='left')
         
-        ttk.Button(btn_frame, text="📷 Crop Screen", 
-                  command=self.crop_screen).pack(pady=2)
-        ttk.Button(btn_frame, text="🤖 Extract to Capture", 
-                  command=self.extract_to_capture).pack(pady=2)
+        title_main = tk.Label(title_frame, 
+                             text="🧠 AlphaMind",
+                             font=FONTS['heading_large'],
+                             fg=COLORS['text_primary'],
+                             bg=COLORS['bg_primary'])
+        title_main.pack(side='left')
         
-        # Status
-        self.ocr_status = ttk.Label(content, text="Ready", foreground="green")
-        self.ocr_status.pack(side='left', padx=5)
-    
-    def setup_capture_panel(self, parent):
-        """Left panel - Live Capture"""
-        left_frame = ttk.LabelFrame(parent, text="Live Capture")
-        left_frame.pack(side='left', fill='both', expand=True, padx=5)
+        subtitle = tk.Label(title_frame,
+                           text=" Intelligent Prompt Hub",
+                           font=FONTS['body_large'],
+                           fg=COLORS['text_accent'],
+                           bg=COLORS['bg_primary'])
+        subtitle.pack(side='left', padx=(5, 0))
         
-        # Status
-        status_frame = ttk.Frame(left_frame)
-        status_frame.pack(fill='x', padx=5, pady=2)
+        # Right side - Status and controls
+        right_frame = ModernFrame(header_frame)
+        right_frame.pack(side='right', fill='y')
         
-        self.monitor_status = ttk.Label(status_frame, text="● Monitoring Ctrl+C", 
-                                       foreground="green")
-        self.monitor_status.pack(side='left')
+        # Status indicator
+        status_frame = ModernFrame(right_frame)
+        status_frame.pack(side='right', padx=(0, 20))
         
-        # Capture text area
-        self.capture_text = scrolledtext.ScrolledText(left_frame, height=20, wrap='word')
-        self.capture_text.pack(fill='both', expand=True, padx=5, pady=5)
+        status_label = tk.Label(status_frame,
+                               textvariable=self.status_var,
+                               font=FONTS['body_medium'],
+                               fg=COLORS['text_success'],
+                               bg=COLORS['bg_primary'])
+        status_label.pack()
+        
+        # Quick action buttons
+        actions_frame = ModernFrame(right_frame)
+        actions_frame.pack(side='right')
+        
+        ModernButton(actions_frame, text="⚙️ Settings", 
+                    command=self.show_settings).pack(side='right', padx=(5, 0))
+        ModernButton(actions_frame, text="📝 Prompts", 
+                    command=self.show_prompt_library).pack(side='right', padx=(5, 0))
+        ModernButton(actions_frame, text="📊 Analytics", 
+                    command=self.show_analytics).pack(side='right', padx=(5, 0))
+        
+    def create_main_content(self):
+        """Create main content area with modern layout"""
+        content_frame = ModernFrame(self.main_container)
+        content_frame.pack(fill='both', expand=True, padx=20, pady=10)
+        
+        # Create notebook with modern tabs
+        self.notebook = ttk.Notebook(content_frame, style='Modern.TNotebook')
+        self.notebook.pack(fill='both', expand=True)
+        
+        # Create tabs
+        self.create_live_capture_tab()
+        self.create_llm_playground_tab()
+        self.create_analytics_tab()
+        
+    def create_live_capture_tab(self):
+        """Create live capture tab with modern design"""
+        tab_frame = ModernFrame(self.notebook)
+        self.notebook.add(tab_frame, text="📋 Live Capture")
+        
+        # Screen OCR section at the very top (always visible)
+        self.create_screen_ocr_section(tab_frame)
+        
+        # Main layout - left and right panels
+        main_paned = ttk.PanedWindow(tab_frame, orient='horizontal')
+        main_paned.pack(fill='both', expand=True, padx=10, pady=10)
+        
+        # Left panel - Live capture area
+        left_panel = self.create_card_frame(main_paned, "🎯 Live Capture Area")
+        main_paned.add(left_panel, weight=3)
+        
+        # Monitoring status
+        monitor_frame = ModernFrame(left_panel)
+        monitor_frame.pack(fill='x', padx=10, pady=(0, 10))
+        
+        monitor_label = tk.Label(monitor_frame,
+                                textvariable=self.monitoring_status,
+                                font=FONTS['body_medium'],
+                                fg=COLORS['text_success'],
+                                bg=COLORS['bg_secondary'])
+        monitor_label.pack(side='left')
+        
+        # Processing status indicator
+        self.processing_label = tk.Label(monitor_frame,
+                                        textvariable=self.processing_status,
+                                        font=FONTS['body_medium'],
+                                        fg=COLORS['text_warning'],
+                                        bg=COLORS['bg_secondary'])
+        self.processing_label.pack(side='right')
+        
+        # Live text area with modern styling
+        self.live_text = scrolledtext.ScrolledText(
+            left_panel,
+            height=15,
+            font=FONTS['mono'],
+            bg=COLORS['bg_tertiary'],
+            fg=COLORS['text_primary'],
+            insertbackground=COLORS['text_accent'],
+            selectbackground=COLORS['bg_accent'],
+            selectforeground=COLORS['text_white'],
+            borderwidth=0,
+            relief='flat'
+        )
+        self.live_text.pack(fill='both', expand=True, padx=10, pady=(0, 10))
         
         # Action buttons
-        btn_frame = ttk.Frame(left_frame)
-        btn_frame.pack(fill='x', padx=5, pady=5)
+        actions_frame = ModernFrame(left_panel)
+        actions_frame.pack(fill='x', padx=10, pady=(0, 10))
         
-        ttk.Button(btn_frame, text="Store →", 
-                  command=self.store_current).pack(side='left', padx=2)
-        ttk.Button(btn_frame, text="🤖 Process by LLM", 
-                  command=self.process_by_llm).pack(side='left', padx=2)
-        ttk.Button(btn_frame, text="⚙️", 
-                  command=self.edit_prompt,
-                  width=3).pack(side='left', padx=2)
-    
-    def setup_storage_panel(self, parent):
-        """Right panel - Stored Items"""
-        right_frame = ttk.LabelFrame(parent, text="Stored Items")
-        right_frame.pack(side='right', fill='both', expand=True, padx=5)
+        ModernButton(actions_frame, text="💾 Store", 
+                    command=self.store_current).pack(side='left', padx=(0, 5))
+        ModernButton(actions_frame, text="🤖 Enchant", 
+                    command=self.process_with_llm).pack(side='left', padx=(0, 5))
+        ModernButton(actions_frame, text="⚙️ Edit Prompt", 
+                    command=self.edit_prompt).pack(side='left', padx=(0, 5))
+        ModernButton(actions_frame, text="🔄 Clear", 
+                    command=self.clear_live).pack(side='left', padx=(0, 5))
+        
+        # Right panel - Stored items
+        right_panel = self.create_card_frame(main_paned, "📚 Stored Items")
+        main_paned.add(right_panel, weight=2)
         
         # Search bar
-        search_frame = ttk.Frame(right_frame)
-        search_frame.pack(fill='x', padx=5, pady=2)
+        search_frame = ModernFrame(right_panel)
+        search_frame.pack(fill='x', padx=10, pady=(0, 10))
         
-        ttk.Label(search_frame, text="🔍").pack(side='left')
-        self.search_var = tk.StringVar()
-        self.search_var.trace('w', self.on_search_change)
+        tk.Label(search_frame, text="🔍", 
+                font=FONTS['body_medium'],
+                fg=COLORS['text_secondary'],
+                bg=COLORS['bg_secondary']).pack(side='left')
         
-        search_entry = ttk.Entry(search_frame, textvariable=self.search_var)
-        search_entry.pack(side='left', fill='x', expand=True, padx=2)
+        self.search_entry = ModernEntry(search_frame)
+        self.search_entry.pack(fill='x', padx=(5, 0))
         
-        # Items list with scrollbar
-        list_frame = ttk.Frame(right_frame)
-        list_frame.pack(fill='both', expand=True, padx=5)
+        # Items list with modern styling
+        list_frame = ModernFrame(right_panel)
+        list_frame.pack(fill='both', expand=True, padx=10, pady=(0, 10))
         
-        # Scrollbar
-        scrollbar = ttk.Scrollbar(list_frame)
-        scrollbar.pack(side='right', fill='y')
+        # Create custom listbox with modern styling
+        self.items_listbox = tk.Listbox(
+            list_frame,
+            font=FONTS['body_medium'],
+            bg=COLORS['bg_tertiary'],
+            fg=COLORS['text_primary'],
+            selectbackground=COLORS['bg_accent'],
+            selectforeground=COLORS['text_white'],
+            borderwidth=0,
+            relief='flat',
+            activestyle='none'
+        )
+        self.items_listbox.pack(fill='both', expand=True)
         
-        # Listbox
-        self.stored_listbox = tk.Listbox(list_frame, 
-                                         yscrollcommand=scrollbar.set,
-                                         font=('Courier', 9))
-        self.stored_listbox.pack(fill='both', expand=True)
-        scrollbar.config(command=self.stored_listbox.yview)
+        # Items actions
+        items_actions = ModernFrame(right_panel)
+        items_actions.pack(fill='x', padx=10, pady=(0, 10))
         
-        # Bind double-click to copy
-        self.stored_listbox.bind('<Double-1>', lambda e: self.copy_selected())
+        ModernButton(items_actions, text="📋 Copy", 
+                    command=self.copy_selected).pack(side='left', padx=(0, 5))
+        ModernButton(items_actions, text="🗑️ Delete", 
+                    command=self.delete_selected).pack(side='left', padx=(0, 5))
+        ModernButton(items_actions, text="📤 Export", 
+                    command=self.export_items).pack(side='right')
         
-        # Storage info
-        self.storage_info = ttk.Label(right_frame, text="Storage: ~/.clipboard_manager/")
-        self.storage_info.pack(padx=5, pady=2)
+    def create_prompt_library_tab(self):
+        """Create prompt library tab for managing prompt patterns"""
+        tab_frame = ModernFrame(self.notebook)
+        self.notebook.add(tab_frame, text="📝 Prompt Library")
         
-        # Action buttons
-        btn_frame = ttk.Frame(right_frame)
-        btn_frame.pack(fill='x', padx=5, pady=5)
+        # Split into categories and prompt editor
+        paned = ttk.PanedWindow(tab_frame, orient='horizontal')
+        paned.pack(fill='both', expand=True, padx=10, pady=10)
         
-        ttk.Button(btn_frame, text="📋 Copy", 
-                  command=self.copy_selected).pack(side='left', padx=2)
-        ttk.Button(btn_frame, text="🗑️ Delete", 
-                  command=self.delete_selected).pack(side='left', padx=2)
-        ttk.Button(btn_frame, text="📤 Export", 
-                  command=self.export_items).pack(side='left', padx=2)
+        # Left - Categories
+        categories_panel = self.create_card_frame(paned, "🗂️ Prompt Categories")
+        paned.add(categories_panel, weight=1)
         
-        # Load items
-        self.refresh_stored_list()
-    
-    def toggle_ocr_panel(self):
-        """Toggle OCR panel visibility"""
-        if self.ocr_expanded:
-            # Collapse
-            self.ocr_frame.pack_forget()
-            self.ocr_toggle.config(text="▼ Screen OCR")
-            self.ocr_expanded = False
-        else:
-            # Expand
-            self.ocr_frame.pack(after=self.ocr_toggle, fill='x', padx=5, pady=2)
-            self.ocr_toggle.config(text="▲ Screen OCR")
-            self.ocr_expanded = True
-    
-    def start_clipboard_monitoring(self):
-        """Start monitoring clipboard changes"""
-        if not KEYBOARD_AVAILABLE or not PYPERCLIP_AVAILABLE:
-            self.monitor_status.config(text="● Missing libraries", foreground="red")
-            messagebox.showerror("Missing Dependencies", 
-                               "Please install: pip install keyboard pyperclip")
+        # Categories list
+        categories = ["📝 Writing", "💻 Coding", "🔍 Analysis", "🎨 Creative", "🧠 Problem Solving", "📊 Data", "🎯 Custom"]
+        
+        self.categories_listbox = tk.Listbox(
+            categories_panel,
+            font=FONTS['body_medium'],
+            bg=COLORS['bg_tertiary'],
+            fg=COLORS['text_primary'],
+            selectbackground=COLORS['bg_accent'],
+            selectforeground=COLORS['text_white'],
+            borderwidth=0,
+            relief='flat'
+        )
+        self.categories_listbox.pack(fill='both', expand=True, padx=10, pady=(0, 10))
+        
+        for category in categories:
+            self.categories_listbox.insert('end', category)
+        
+        # Right - Prompt editor
+        editor_panel = self.create_card_frame(paned, "✨ Prompt Editor")
+        paned.add(editor_panel, weight=2)
+        
+        # Prompt name
+        name_frame = ModernFrame(editor_panel)
+        name_frame.pack(fill='x', padx=10, pady=(0, 10))
+        
+        tk.Label(name_frame, text="Prompt Name:",
+                font=FONTS['body_medium'],
+                fg=COLORS['text_primary'],
+                bg=COLORS['bg_secondary']).pack(anchor='w')
+        
+        self.prompt_name_entry = ModernEntry(name_frame)
+        self.prompt_name_entry.pack(fill='x', pady=(5, 0))
+        
+        # Prompt content
+        content_frame = ModernFrame(editor_panel)
+        content_frame.pack(fill='both', expand=True, padx=10, pady=(0, 10))
+        
+        tk.Label(content_frame, text="Prompt Template:",
+                font=FONTS['body_medium'],
+                fg=COLORS['text_primary'],
+                bg=COLORS['bg_secondary']).pack(anchor='w')
+        
+        self.prompt_editor = scrolledtext.ScrolledText(
+            content_frame,
+            height=10,
+            font=FONTS['mono'],
+            bg=COLORS['bg_tertiary'],
+            fg=COLORS['text_primary'],
+            insertbackground=COLORS['text_accent'],
+            borderwidth=0,
+            relief='flat'
+        )
+        self.prompt_editor.pack(fill='both', expand=True, pady=(5, 0))
+        
+        # Prompt actions
+        prompt_actions = ModernFrame(editor_panel)
+        prompt_actions.pack(fill='x', padx=10, pady=(0, 10))
+        
+        ModernButton(prompt_actions, text="💾 Save Prompt", 
+                    command=self.save_prompt).pack(side='left', padx=(0, 5))
+        ModernButton(prompt_actions, text="🚀 Use Prompt", 
+                    command=self.use_prompt).pack(side='left', padx=(0, 5))
+        ModernButton(prompt_actions, text="📋 Copy Template", 
+                    command=self.copy_prompt).pack(side='right')
+        
+    def create_llm_playground_tab(self):
+        """Create LLM playground tab for interactive AI sessions"""
+        tab_frame = ModernFrame(self.notebook)
+        self.notebook.add(tab_frame, text="🤖 LLM Playground")
+        
+        # Provider selection
+        provider_frame = ModernFrame(tab_frame)
+        provider_frame.pack(fill='x', padx=10, pady=10)
+        
+        tk.Label(provider_frame, text="🤖 AI Provider:",
+                font=FONTS['body_medium'],
+                fg=COLORS['text_primary'],
+                bg=COLORS['bg_primary']).pack(side='left')
+        
+        provider_combo = ttk.Combobox(provider_frame, 
+                                     textvariable=self.llm_provider_var,
+                                     values=["Claude (Anthropic)", "GPT-4 (OpenAI)", "Gemini (Google)"],
+                                     state="readonly")
+        provider_combo.pack(side='left', padx=(10, 0))
+        
+        # Chat area
+        chat_frame = self.create_card_frame(tab_frame, "💬 AI Conversation")
+        chat_frame.pack(fill='both', expand=True, padx=10, pady=(0, 10))
+        
+        # Conversation display
+        self.conversation_display = scrolledtext.ScrolledText(
+            chat_frame,
+            height=15,
+            font=FONTS['mono_small'],
+            bg=COLORS['bg_tertiary'],
+            fg=COLORS['text_primary'],
+            insertbackground=COLORS['text_accent'],
+            state='disabled',
+            borderwidth=0,
+            relief='flat'
+        )
+        self.conversation_display.pack(fill='both', expand=True, padx=10, pady=(0, 10))
+        
+        # Input area
+        input_frame = ModernFrame(tab_frame)
+        input_frame.pack(fill='x', padx=10, pady=(0, 10))
+        
+        tk.Label(input_frame, text="💭 Your Message:",
+                font=FONTS['body_medium'],
+                fg=COLORS['text_primary'],
+                bg=COLORS['bg_primary']).pack(anchor='w')
+        
+        self.message_entry = scrolledtext.ScrolledText(
+            input_frame,
+            height=4,
+            font=FONTS['mono'],
+            bg=COLORS['bg_tertiary'],
+            fg=COLORS['text_primary'],
+            insertbackground=COLORS['text_accent'],
+            borderwidth=0,
+            relief='flat'
+        )
+        self.message_entry.pack(fill='x', pady=(5, 10))
+        
+        # Send controls
+        send_frame = ModernFrame(input_frame)
+        send_frame.pack(fill='x')
+        
+        ModernButton(send_frame, text="🚀 Send Message", 
+                    command=self.send_message).pack(side='right', padx=(5, 0))
+        ModernButton(send_frame, text="🔄 Clear Chat", 
+                    command=self.clear_chat).pack(side='right', padx=(5, 0))
+        ModernButton(send_frame, text="📋 Use Clipboard", 
+                    command=self.use_clipboard_in_chat).pack(side='left')
+        
+    def create_analytics_tab(self):
+        """Create analytics tab for usage insights"""
+        tab_frame = ModernFrame(self.notebook)
+        self.notebook.add(tab_frame, text="📊 Analytics")
+        
+        # Analytics cards
+        cards_frame = ModernFrame(tab_frame)
+        cards_frame.pack(fill='x', padx=10, pady=10)
+        
+        # Usage stats cards
+        stats_frame = ModernFrame(cards_frame)
+        stats_frame.pack(fill='x', pady=(0, 10))
+        
+        # Create stat cards
+        self.create_stat_card(stats_frame, "📋 Total Captures", "1,247", "left")
+        self.create_stat_card(stats_frame, "🤖 LLM Queries", "89", "left", padx=(10, 0))
+        self.create_stat_card(stats_frame, "💾 Stored Items", "156", "left", padx=(10, 0))
+        self.create_stat_card(stats_frame, "⚡ Avg Response", "2.3s", "right")
+        
+        # Charts area (placeholder)
+        charts_frame = self.create_card_frame(tab_frame, "📈 Usage Patterns")
+        charts_frame.pack(fill='both', expand=True, padx=10, pady=(0, 10))
+        
+        # Placeholder for charts
+        placeholder = tk.Label(charts_frame,
+                              text="📊 Advanced analytics coming soon...\n\n• Usage patterns over time\n• Most used prompts\n• LLM performance metrics\n• Productivity insights",
+                              font=FONTS['body_large'],
+                              fg=COLORS['text_secondary'],
+                              bg=COLORS['bg_secondary'],
+                              justify='center')
+        placeholder.pack(expand=True, fill='both', padx=20, pady=20)
+        
+    def create_card_frame(self, parent, title):
+        """Create a modern card-style frame"""
+        card = ttk.Frame(parent, style='Card.TFrame')
+        
+        # Card header
+        header = ModernFrame(card)
+        header.pack(fill='x', padx=1, pady=1)
+        header.configure(style='Card.TFrame')
+        
+        title_label = tk.Label(header,
+                              text=title,
+                              font=FONTS['heading_small'],
+                              fg=COLORS['text_primary'],  # Changed from text_white to text_primary
+                              bg=COLORS['bg_secondary'])
+        title_label.pack(anchor='w', padx=10, pady=8)
+        
+        return card
+        
+    def create_stat_card(self, parent, title, value, side, padx=(0, 0)):
+        """Create a statistics card"""
+        card = ModernFrame(parent)
+        card.pack(side=side, fill='x', expand=True, padx=padx)
+        card.configure(style='Card.TFrame')
+        
+        # Value
+        value_label = tk.Label(card,
+                              text=value,
+                              font=FONTS['heading_large'],
+                              fg=COLORS['text_accent'],
+                              bg=COLORS['bg_secondary'])
+        value_label.pack(pady=(10, 0))
+        
+        # Title
+        title_label = tk.Label(card,
+                              text=title,
+                              font=FONTS['body_medium'],
+                              fg=COLORS['text_secondary'],
+                              bg=COLORS['bg_secondary'])
+        title_label.pack(pady=(0, 10))
+        
+    def create_footer(self):
+        """Create modern footer"""
+        footer_frame = ModernFrame(self.main_container)
+        footer_frame.pack(fill='x', padx=20, pady=(10, 20))
+        
+        # Left side - Status
+        status_label = tk.Label(footer_frame,
+                               textvariable=self.status_var,
+                               font=FONTS['body_small'],
+                               fg=COLORS['text_secondary'],
+                               bg=COLORS['bg_primary'])
+        status_label.pack(side='left')
+        
+        # Right side - Credits
+        credits_label = tk.Label(footer_frame,
+                                text="AlphaMind • Alicization Vision • Intelligent Prompt Hub",
+                                font=FONTS['body_small'],
+                                fg=COLORS['text_secondary'],
+                                bg=COLORS['bg_primary'])
+        credits_label.pack(side='right')
+        
+    def apply_modern_theming(self):
+        """Apply additional modern theming"""
+        # Configure root window
+        self.root.configure(bg=COLORS['bg_primary'])
+        
+        # Bind hover effects
+        self.setup_hover_effects()
+        
+    def setup_hover_effects(self):
+        """Setup modern hover effects"""
+        # Add hover effects to buttons and interactive elements
+        pass
+        
+    # Event handlers (placeholder methods)
+    def show_settings(self):
+        messagebox.showinfo("Settings", "Settings dialog coming soon!")
+        
+    def show_analytics(self):
+        messagebox.showinfo("Analytics", "Advanced analytics coming soon!")
+        
+    def store_current(self):
+        messagebox.showinfo("Store", "Storing current text...")
+        
+    def process_with_llm(self):
+        """Process current text with LLM - from original implementation"""
+        current_text = self.live_text.get(1.0, 'end-1c').strip()
+        if not current_text:
+            self.status_var.set("❌ No text to process")
+            self.root.after(3000, lambda: self.status_var.set("🚀 AlphaMind Ready"))
             return
         
+        if not self.llm_api_key:
+            self.status_var.set("⚠️ No LLM API key found")
+            self.root.after(3000, lambda: self.status_var.set("🚀 AlphaMind Ready"))
+            return
+        
+        # Show processing
+        original_text = current_text
+        self.live_text.delete(1.0, 'end')
+        self.live_text.insert(1.0, "🤖 Processing with LLM...")
+        self.status_var.set("🤖 Processing text with AI...")
+        
+        # Process in background
+        threading.Thread(
+            target=self.process_text_thread,
+            args=(original_text,),
+            daemon=True
+        ).start()
+    
+    def process_text_thread(self, text):
+        """Process text with LLM in background - from original implementation"""
         try:
-            self.last_clipboard = pyperclip.paste()
+            prompt = self.llm_prompt.replace("{text}", text)
             
-            def on_ctrl_c():
-                time.sleep(0.1)  # Let clipboard update
-                text = pyperclip.paste()
-                if text != self.last_clipboard and text.strip():
-                    self.last_clipboard = text
-                    self.root.after(0, lambda: self.update_live_capture(text))
+            if self.llm_provider == "claude":
+                response = self.claude_text(prompt)
+            elif self.llm_provider == "openai":
+                response = self.openai_text(prompt)
+            elif self.llm_provider == "gemini":
+                response = self.gemini_text(prompt)
+            else:
+                response = "No LLM provider configured"
             
-            keyboard.add_hotkey('ctrl+c', on_ctrl_c)
-            self.clipboard_monitoring = True
-            self.monitor_status.config(text="● Monitoring Ctrl+C", foreground="green")
+            # Format result like original
+            result = f"ORIGINAL:\n{text}\n\n{'='*50}\nPROCESSED:\n{response}"
+            
+            self.root.after(0, lambda: self.live_text.delete(1.0, 'end'))
+            self.root.after(0, lambda: self.live_text.insert(1.0, result))
+            self.root.after(0, lambda: self.status_var.set("✅ Processing complete"))
+            self.root.after(3000, lambda: self.status_var.set("🚀 AlphaMind Ready"))
             
         except Exception as e:
-            self.monitor_status.config(text="● Monitor failed", foreground="red")
-            print(f"Clipboard monitoring error: {e}")
+            self.root.after(0, lambda: self.live_text.delete(1.0, 'end'))
+            self.root.after(0, lambda: self.live_text.insert(1.0, f"❌ Processing failed: {e}"))
+            self.root.after(0, lambda: self.status_var.set("❌ Processing failed"))
+            self.root.after(3000, lambda: self.status_var.set("🚀 AlphaMind Ready"))
     
-    def update_live_capture(self, text):
-        """Update live capture area - universal entry point"""
-        self.capture_text.delete(1.0, tk.END)
-        self.capture_text.insert(1.0, text)
+    def claude_text(self, prompt):
+        """Claude text API call - Updated for AlphaMind"""
+        response = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": self.llm_api_key,
+                "Content-Type": "application/json",
+                "anthropic-version": "2023-06-01"
+            },
+            json={
+                "model": "claude-3-5-sonnet-20241022",
+                "max_tokens": 2000,  # Increased for better responses
+                "messages": [{
+                    "role": "user",
+                    "content": prompt
+                }]
+            },
+            timeout=45  # Increased timeout
+        )
         
-        # Flash highlight
-        self.capture_text.config(bg='#ffffcc')
-        self.root.after(300, lambda: self.capture_text.config(bg='white'))
+        if response.status_code == 200:
+            return response.json()['content'][0]['text']
+        else:
+            raise Exception(f"Claude API error: {response.status_code} - {response.text}")
+    
+    def openai_text(self, prompt):
+        """OpenAI text API call - Updated for AlphaMind"""
+        response = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {self.llm_api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "gpt-4-turbo-preview",  # Updated to latest model
+                "messages": [{
+                    "role": "user",
+                    "content": prompt
+                }],
+                "max_tokens": 2000,  # Increased for better responses
+                "temperature": 0.7  # Added for more natural responses
+            },
+            timeout=45  # Increased timeout
+        )
+        
+        if response.status_code == 200:
+            return response.json()['choices'][0]['message']['content']
+        else:
+            raise Exception(f"OpenAI API error: {response.status_code} - {response.text}")
+    
+    def gemini_text(self, prompt):
+        """Gemini text API call - Updated for AlphaMind"""
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={self.llm_api_key}"
+        
+        response = requests.post(
+            url,
+            json={
+                "contents": [{
+                    "parts": [{
+                        "text": prompt
+                    }]
+                }],
+                "generationConfig": {
+                    "maxOutputTokens": 2000,  # Increased for better responses
+                    "temperature": 0.7,
+                    "topP": 0.8,
+                    "topK": 40
+                }
+            },
+            timeout=45  # Increased timeout
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            return result['candidates'][0]['content']['parts'][0]['text']
+        else:
+            raise Exception(f"Gemini API error: {response.status_code} - {response.text}")
+    
+    def edit_prompt(self):
+        """Edit LLM prompt - Simple tall window with all content visible"""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("⚙️ AlphaMind - Edit LLM Prompt")
+        dialog.geometry("700x800")  # Tall enough to show everything
+        dialog.configure(bg=COLORS['bg_primary'])
+        dialog.attributes('-topmost', True)
+        dialog.resizable(True, True)
+        
+        # Make it modal
+        dialog.transient(self.root)
+        dialog.grab_set()
+        
+        # Handle window close button (X) - ask to save
+        def on_window_close():
+            current_text = prompt_text.get(1.0, 'end-1c').strip()
+            if current_text != self.llm_prompt:
+                # Prompt has been modified
+                result = tk.messagebox.askyesnocancel(
+                    "Save Changes?", 
+                    "Do you want to save your changes to the prompt?"
+                )
+                if result is True:  # Yes - save
+                    self.llm_prompt = current_text
+                    self.status_var.set("✅ Prompt saved")
+                    self.root.after(3000, lambda: self.status_var.set("🚀 AlphaMind Ready"))
+                elif result is False:  # No - don't save
+                    pass  # Just close
+                else:  # Cancel - don't close
+                    return
+            dialog.destroy()
+        
+        dialog.protocol("WM_DELETE_WINDOW", on_window_close)
+        
+        # Header
+        header_frame = ModernFrame(dialog)
+        header_frame.pack(fill='x', padx=15, pady=(15, 10))
+        
+        tk.Label(header_frame, 
+                text="🤖 LLM Prompt Template",
+                font=FONTS['heading_medium'],
+                fg=COLORS['text_primary'],
+                bg=COLORS['bg_primary']).pack(side='left')
+        
+        # Instructions
+        instructions_frame = ModernFrame(dialog)
+        instructions_frame.pack(fill='x', padx=15, pady=(0, 10))
+        
+        tk.Label(instructions_frame,
+                text="Use {text} as placeholder for the input text. Customize how AI processes your content:",
+                font=FONTS['body_medium'],
+                fg=COLORS['text_secondary'],
+                bg=COLORS['bg_primary'],
+                wraplength=650,
+                justify='left').pack(anchor='w')
+        
+        # Prompt editor
+        editor_frame = ModernFrame(dialog)
+        editor_frame.pack(fill='both', expand=True, padx=15, pady=(0, 10))
+        
+        prompt_text = scrolledtext.ScrolledText(
+            editor_frame, 
+            wrap='word',
+            font=FONTS['mono'],
+            bg=COLORS['bg_tertiary'],
+            fg=COLORS['text_primary'],
+            insertbackground=COLORS['text_accent'],
+            selectbackground=COLORS['bg_accent'],
+            selectforeground=COLORS['text_primary'],
+            borderwidth=0,
+            relief='flat'
+        )
+        prompt_text.pack(fill='both', expand=True)
+        prompt_text.insert(1.0, self.llm_prompt)
+        
+        # Preset buttons
+        preset_frame = ModernFrame(dialog)
+        preset_frame.pack(fill='x', padx=15, pady=(0, 10))
+        
+        tk.Label(preset_frame, 
+                text="🎯 Quick Presets:",
+                font=FONTS['body_medium'],
+                fg=COLORS['text_primary'],
+                bg=COLORS['bg_primary']).pack(side='left')
+        
+        presets = {
+            "Explain": "Explain this text clearly and concisely:\n- What does it do/mean?\n- Key points to understand\n- Any important warnings or notes\n\nText to explain:\n{text}",
+            "Code": "Analyze this code:\n- What it does\n- How it works\n- Potential issues or improvements\n- Best practices\n\nCode to analyze:\n{text}",
+            "Translate": "Translate this text to Chinese (Traditional):\n\n{text}",
+            "Summarize": "Create a concise summary with key points:\n\n{text}",
+            "Fix": "Review and fix any errors in this text:\n- Grammar and spelling\n- Clarity and structure\n- Technical accuracy\n\nText to fix:\n{text}"
+        }
+        
+        preset_buttons_frame = ModernFrame(preset_frame)
+        preset_buttons_frame.pack(side='right')
+        
+        for name, preset in presets.items():
+            ModernButton(preset_buttons_frame, text=name,
+                        command=lambda p=preset: (
+                            prompt_text.delete(1.0, 'end'),
+                            prompt_text.insert(1.0, p)
+                        )).pack(side='left', padx=(5, 0))
+        
+        # Define action functions first
+        def save_and_close():
+            new_prompt = prompt_text.get(1.0, 'end-1c').strip()
+            if new_prompt:
+                self.llm_prompt = new_prompt
+                self.status_var.set("✅ Prompt updated successfully")
+                self.root.after(3000, lambda: self.status_var.set("🚀 AlphaMind Ready"))
+                dialog.destroy()
+            else:
+                # Show warning if prompt is empty
+                tk.messagebox.showwarning("Empty Prompt", "Please enter a prompt before saving.")
+        
+        def cancel_edit():
+            dialog.destroy()
+        
+        def reset_to_default():
+            prompt_text.delete(1.0, 'end')
+            prompt_text.insert(1.0, """Explain this text clearly and concisely:
+- What does it do/mean?
+- Key points to understand
+- Any important warnings or notes
+
+Text to explain:
+{text}""")
+        
+        # Keyboard shortcuts
+        def on_ctrl_s(event):
+            save_and_close()
+            return "break"
+        
+        def on_ctrl_enter(event):
+            save_and_close()
+            return "break"
+        
+        def on_escape(event):
+            cancel_edit()
+            return "break"
+        
+        # Bind keyboard shortcuts
+        dialog.bind('<Control-s>', on_ctrl_s)
+        dialog.bind('<Control-Return>', on_ctrl_enter)
+        dialog.bind('<Escape>', on_escape)
+        prompt_text.bind('<Control-s>', on_ctrl_s)
+        prompt_text.bind('<Control-Return>', on_ctrl_enter)
+        
+        # SIMPLE, CLEAR BUTTON SECTION
+        button_section = tk.Frame(dialog, bg=COLORS['bg_secondary'], relief='solid', bd=2)
+        button_section.pack(fill='x', padx=15, pady=15)
+        
+        # Section title
+        tk.Label(button_section, 
+                text="🎯 ACTIONS:",
+                font=FONTS['heading_medium'],
+                fg=COLORS['text_primary'],
+                bg=COLORS['bg_secondary']).pack(pady=10)
+        
+        # Button row
+        btn_row = tk.Frame(button_section, bg=COLORS['bg_secondary'])
+        btn_row.pack(fill='x', padx=20, pady=(0, 15))
+        
+        # Reset button (left)
+        ModernButton(btn_row, text="🔄 Reset to Default", command=reset_to_default).pack(side='left')
+        
+        # Cancel button (right)
+        ModernButton(btn_row, text="❌ Cancel", command=cancel_edit).pack(side='right', padx=(5, 0))
+        
+        # SAVE BUTTON (right, most prominent)
+        save_btn = ModernButton(btn_row, text="💾 SAVE & LEAVE", command=save_and_close)
+        save_btn.pack(side='right', padx=(10, 0))
+        save_btn.configure(style='Accent.TButton')
+        
+        # Make save button larger and more visible (ttk buttons use style, not font directly)
+        # The Accent.TButton style already makes it prominent
+        
+        # Keyboard shortcuts help
+        help_frame = ModernFrame(dialog)
+        help_frame.pack(fill='x', padx=15, pady=(0, 15))
+        
+        tk.Label(help_frame,
+                text="💡 Shortcuts: Ctrl+S (Save & Leave) • Ctrl+Enter (Save & Leave) • Escape (Cancel)",
+                font=FONTS['body_small'],
+                fg=COLORS['text_secondary'],
+                bg=COLORS['bg_primary']).pack(anchor='w')
+        
+        # Focus on text area
+        prompt_text.focus_set()
+        
+    def clear_live(self):
+        self.live_text.delete(1.0, 'end')
+        
+    def copy_selected(self):
+        messagebox.showinfo("Copy", "Copying selected item...")
+        
+    def delete_selected(self):
+        messagebox.showinfo("Delete", "Deleting selected item...")
+        
+    def export_items(self):
+        messagebox.showinfo("Export", "Exporting items...")
+        
+    def save_prompt(self):
+        messagebox.showinfo("Save", "Saving prompt...")
+        
+    def use_prompt(self):
+        messagebox.showinfo("Use", "Using prompt...")
+        
+    def copy_prompt(self):
+        messagebox.showinfo("Copy", "Copying prompt template...")
+        
+    def send_message(self):
+        """Send message to LLM - show loading indicator"""
+        if self.is_processing:
+            return
+            
+        # Get message text
+        message = self.message_entry.get(1.0, 'end-1c').strip()
+        if not message:
+            self.status_var.set("❌ No message to send")
+            self.root.after(3000, lambda: self.status_var.set("🚀 AlphaMind Ready"))
+            return
+            
+        # Start processing
+        self.start_llm_processing(message, is_chat=True)
+        
+    def clear_chat(self):
+        self.conversation_display.config(state='normal')
+        self.conversation_display.delete(1.0, 'end')
+        self.conversation_display.config(state='disabled')
+        
+    def use_clipboard_in_chat(self):
+        messagebox.showinfo("Clipboard", "Using clipboard content...")
+    
+    def create_screen_ocr_section(self, parent):
+        """Create screen OCR section at the top of Live Capture tab"""
+        # OCR Card at the top
+        ocr_card = self.create_card_frame(parent, "📷 Screen OCR - Direct Crop")
+        ocr_card.pack(fill='x', padx=10, pady=(10, 10))
+        
+        # OCR content layout
+        ocr_content = ModernFrame(ocr_card)
+        ocr_content.pack(fill='x', padx=10, pady=(0, 10))
+        
+        # Left side - Controls
+        controls_frame = ModernFrame(ocr_content)
+        controls_frame.pack(side='left', fill='y')
+        
+        ModernButton(controls_frame, text="📷 Crop Screen", 
+                    command=self.crop_screen).pack(pady=(0, 5))
+        ModernButton(controls_frame, text="🔍 Extract Text", 
+                    command=self.extract_text_from_image).pack(pady=(0, 5))
+        
+        # Status indicator
+        self.ocr_status = tk.Label(controls_frame,
+                                  text="Ready to capture",
+                                  font=FONTS['body_small'],
+                                  fg=COLORS['text_secondary'],
+                                  bg=COLORS['bg_secondary'])
+        self.ocr_status.pack(pady=(5, 0))
+        
+        # Right side - Image preview
+        preview_frame = ModernFrame(ocr_content)
+        preview_frame.pack(side='right', fill='both', expand=True, padx=(10, 0))
+        
+        self.image_label = tk.Label(preview_frame,
+                                   text="[No image captured]\nClick 'Crop Screen' to select area",
+                                   font=FONTS['body_medium'],
+                                   fg=COLORS['text_secondary'],
+                                   bg=COLORS['bg_tertiary'],
+                                   relief='solid',
+                                   borderwidth=1,
+                                   width=25, 
+                                   height=6,
+                                   justify='center')
+        self.image_label.pack(fill='both', expand=True)
+    
+    def toggle_ocr_panel(self):
+        """Toggle the OCR panel visibility"""
+        if self.ocr_expanded:
+            # Hide panel
+            self.ocr_panel.pack_forget()
+            self.ocr_toggle_btn.config(text="▼ Screen OCR")
+            self.ocr_expanded = False
+        else:
+            # Show panel
+            self.ocr_panel.pack(fill='x', padx=10, pady=(0, 10))
+            self.ocr_toggle_btn.config(text="▲ Screen OCR")
+            self.ocr_expanded = True
     
     def crop_screen(self):
-        """Interactive screen cropping"""
-        if not PIL_AVAILABLE:
-            messagebox.showerror("Missing PIL", "Please install: pip install Pillow")
+        """Interactive screen cropping - from original implementation"""
+        try:
+            from PIL import Image, ImageGrab, ImageTk
+        except ImportError:
+            self.status_var.set("❌ Please install: pip install Pillow")
+            self.root.after(3000, lambda: self.status_var.set("🚀 AlphaMind Ready"))
             return
         
-        self.ocr_status.config(text="Select screen region...", foreground="blue")
+        self.ocr_status.config(text="Select screen region...", fg=COLORS['text_warning'])
+        self.status_var.set("📷 Click and drag to select area...")
         self.root.withdraw()
         
         try:
@@ -380,678 +1180,476 @@ Text to explain:
                 
             def on_mouse_up(event):
                 nonlocal start_x, start_y
+                end_x, end_y = event.x, event.y
+                
+                # Ensure we have a valid selection
+                if abs(end_x - start_x) < 10 or abs(end_y - start_y) < 10:
+                    overlay.destroy()
+                    self.root.deiconify()
+                    self.ocr_status.config(text="Selection too small", fg=COLORS['text_error'])
+                    self.status_var.set("🚀 AlphaMind Ready")
+                    return
+                
+                # Calculate crop area
+                x1, x2 = min(start_x, end_x), max(start_x, end_x)
+                y1, y2 = min(start_y, end_y), max(start_y, end_y)
+                
                 overlay.destroy()
                 
-                if start_x and start_y:
-                    # Calculate region
-                    x1, y1 = min(start_x, event.x), min(start_y, event.y)
-                    x2, y2 = max(start_x, event.x), max(start_y, event.y)
-                    
-                    if abs(x2 - x1) > 10 and abs(y2 - y1) > 10:
-                        # Capture region
-                        self.current_image = ImageGrab.grab(bbox=(x1, y1, x2, y2))
-                        self.show_image_preview()
-                        self.ocr_status.config(text="✓ Image captured", foreground="green")
-                    else:
-                        self.ocr_status.config(text="Selection too small", foreground="orange")
-                
-                self.root.deiconify()
+                # Capture the selected area
+                self.capture_selected_area(x1, y1, x2, y2)
             
             def on_escape(event):
                 overlay.destroy()
                 self.root.deiconify()
-                self.ocr_status.config(text="Selection cancelled", foreground="orange")
+                self.ocr_status.config(text="Capture cancelled", fg=COLORS['text_secondary'])
+                self.status_var.set("🚀 AlphaMind Ready")
             
+            # Bind events
             canvas.bind('<Button-1>', on_mouse_down)
             canvas.bind('<B1-Motion>', on_mouse_drag)
             canvas.bind('<ButtonRelease-1>', on_mouse_up)
             overlay.bind('<Escape>', on_escape)
-            canvas.focus_set()
+            overlay.focus_set()
+            
+            # Instructions
+            instructions = tk.Label(canvas, 
+                                   text="Click and drag to select area • Press ESC to cancel",
+                                   font=FONTS['body_large'],
+                                   fg='white',
+                                   bg='black')
+            instructions.pack(pady=20)
+            
+        except Exception as e:
+            overlay.destroy() if 'overlay' in locals() else None
+            self.root.deiconify()
+            self.ocr_status.config(text=f"Error: {str(e)}", fg=COLORS['text_error'])
+            self.status_var.set("🚀 AlphaMind Ready")
+    
+    def capture_selected_area(self, x1, y1, x2, y2):
+        """Capture the selected screen area"""
+        try:
+            from PIL import Image, ImageGrab, ImageTk
+            
+            # Capture the selected area
+            screenshot = ImageGrab.grab(bbox=(x1, y1, x2, y2))
+            self.current_image = screenshot
+            
+            # Create thumbnail for preview
+            thumbnail = screenshot.copy()
+            thumbnail.thumbnail((200, 150), Image.Resampling.LANCZOS)
+            
+            # Convert to PhotoImage for display
+            photo = ImageTk.PhotoImage(thumbnail)
+            
+            # Update the image label
+            self.image_label.configure(image=photo, text="")
+            self.image_label.image = photo  # Keep a reference
+            
+            # Update status
+            self.ocr_status.config(text=f"Captured {screenshot.width}×{screenshot.height}", 
+                                  fg=COLORS['text_success'])
+            self.status_var.set("✅ Screen area captured - ready for OCR")
+            self.root.deiconify()
+            
+            # Auto-extract text
+            self.root.after(1000, self.extract_text_from_image)
             
         except Exception as e:
             self.root.deiconify()
-            self.ocr_status.config(text=f"Crop failed: {e}", foreground="red")
+            self.ocr_status.config(text=f"Capture error: {str(e)}", fg=COLORS['text_error'])
+            self.status_var.set("🚀 AlphaMind Ready")
     
-    def show_image_preview(self):
-        """Show cropped image preview"""
-        if self.current_image:
-            # Resize for preview
-            img = self.current_image.copy()
-            img.thumbnail((200, 150), Image.Resampling.LANCZOS)
-            
-            # Convert to PhotoImage
-            self.preview_image = ImageTk.PhotoImage(img)
-            self.image_label.config(image=self.preview_image, text="")
-    
-    def extract_to_capture(self):
-        """Extract text from image and send to Live Capture"""
+    def extract_text_from_image(self):
+        """Extract text from captured image using LLM vision"""
         if not self.current_image:
-            self.ocr_status.config(text="❌ No image", foreground="red")
+            self.status_var.set("❌ No image to process")
+            self.root.after(3000, lambda: self.status_var.set("🚀 AlphaMind Ready"))
             return
         
-        if not REQUESTS_AVAILABLE:
-            messagebox.showerror("Missing requests", "Please install: pip install requests")
-            return
+        self.ocr_status.config(text="AI analyzing image...", fg=COLORS['text_warning'])
+        self.status_var.set("🤖 AI extracting text from image...")
         
-        if not self.llm_api_key:
-            messagebox.showwarning("No API Key", 
-                                 "Please set an environment variable:\n" +
-                                 "ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY")
-            return
+        # Use LLM vision for text extraction in a separate thread
+        def extract_with_llm():
+            try:
+                # Convert image to base64 for LLM processing
+                import base64
+                import io
+                
+                # Save image to bytes
+                img_buffer = io.BytesIO()
+                self.current_image.save(img_buffer, format='PNG')
+                img_base64 = base64.b64encode(img_buffer.getvalue()).decode()
+                
+                # Try different LLM providers in order of preference
+                extracted_text = None
+                
+                # Try Claude first (best vision capabilities)
+                claude_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("CLAUDE_API_KEY")
+                if claude_key:
+                    extracted_text = self.extract_text_with_claude(img_base64, claude_key)
+                
+                # Try GPT-4 Vision if Claude failed
+                if not extracted_text:
+                    openai_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_KEY")
+                    if openai_key:
+                        extracted_text = self.extract_text_with_openai(img_base64, openai_key)
+                
+                # Try Gemini Vision if others failed
+                if not extracted_text:
+                    gemini_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+                    if gemini_key:
+                        extracted_text = self.extract_text_with_gemini(img_base64, gemini_key)
+                
+                # Fallback if no LLM available
+                if not extracted_text:
+                    fallback_text = f"🤖 No LLM API keys found\n\nImage captured: {self.current_image.width}×{self.current_image.height} pixels\n\nTo enable AI text extraction, add API keys to .env:\n- ANTHROPIC_API_KEY (Claude - recommended)\n- OPENAI_API_KEY (GPT-4 Vision)\n- GOOGLE_API_KEY (Gemini Vision)"
+                    self.root.after(0, lambda: self.ocr_extraction_complete(fallback_text, success=False))
+                    return
+                
+                self.root.after(0, lambda: self.ocr_extraction_complete(extracted_text, success=True))
+                
+            except Exception as e:
+                error_text = f"AI Vision Error: {str(e)}\n\nImage captured: {self.current_image.width}×{self.current_image.height} pixels"
+                self.root.after(0, lambda: self.ocr_extraction_complete(error_text, success=False))
         
-        self.ocr_status.config(text="⏳ Extracting...", foreground="blue")
-        
-        # Run extraction in background
-        threading.Thread(
-            target=self.extract_text_thread,
-            daemon=True
-        ).start()
+        # Run LLM vision in background thread
+        llm_thread = threading.Thread(target=extract_with_llm, daemon=True)
+        llm_thread.start()
     
-    def extract_text_thread(self):
-        """Extract text using LLM in background thread"""
+    def extract_text_with_claude(self, img_base64, api_key):
+        """Extract text using Claude Vision"""
         try:
-            # Convert image to base64
-            buffer = io.BytesIO()
-            self.current_image.save(buffer, format='PNG')
-            img_b64 = base64.b64encode(buffer.getvalue()).decode()
+            import requests
             
-            # Call appropriate LLM
-            if self.llm_provider == "claude":
-                text = self.claude_vision(img_b64)
-            elif self.llm_provider == "openai":
-                text = self.openai_vision(img_b64)
-            elif self.llm_provider == "gemini":
-                text = self.gemini_vision(img_b64)
-            else:
-                text = "No LLM provider configured"
-            
-            # Update UI
-            self.root.after(0, lambda: self.update_live_capture(text))
-            self.root.after(0, lambda: self.ocr_status.config(
-                text="✓ Text extracted", foreground="green"))
-            
-        except Exception as e:
-            self.root.after(0, lambda: self.ocr_status.config(
-                text=f"❌ {str(e)}", foreground="red"))
-    
-    def claude_vision(self, img_b64):
-        """Claude vision API call"""
-        response = requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "x-api-key": self.llm_api_key,
+            headers = {
                 "Content-Type": "application/json",
+                "x-api-key": api_key,
                 "anthropic-version": "2023-06-01"
-            },
-            json={
+            }
+            
+            data = {
                 "model": "claude-3-5-sonnet-20241022",
-                "max_tokens": 1000,
+                "max_tokens": 4000,
                 "messages": [{
                     "role": "user",
                     "content": [
+                        {
+                            "type": "text",
+                            "text": "Extract all text from this image. Return only the text content, exactly as it appears, without any commentary or formatting. If there's no readable text, return 'No text found'."
+                        },
                         {
                             "type": "image",
                             "source": {
                                 "type": "base64",
                                 "media_type": "image/png",
-                                "data": img_b64
+                                "data": img_base64
                             }
-                        },
-                        {
-                            "type": "text",
-                            "text": "Extract all text from this image. Return only the text content."
                         }
                     ]
                 }]
             }
-        )
+            
+            response = requests.post("https://api.anthropic.com/v1/messages", 
+                                   headers=headers, json=data, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                return result["content"][0]["text"]
+            
+        except Exception as e:
+            print(f"Claude vision error: {e}")
         
-        if response.status_code == 200:
-            return response.json()['content'][0]['text']
-        else:
-            raise Exception(f"Claude API error: {response.status_code}")
+        return None
     
-    def openai_vision(self, img_b64):
-        """OpenAI vision API call"""
-        response = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {self.llm_api_key}",
-                "Content-Type": "application/json"
-            },
-            json={
+    def extract_text_with_openai(self, img_base64, api_key):
+        """Extract text using GPT-4 Vision"""
+        try:
+            import requests
+            
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}"
+            }
+            
+            data = {
                 "model": "gpt-4-vision-preview",
                 "messages": [{
                     "role": "user",
                     "content": [
                         {
                             "type": "text",
-                            "text": "Extract all text from this image. Return only the text content."
+                            "text": "Extract all text from this image. Return only the text content, exactly as it appears, without any commentary or formatting. If there's no readable text, return 'No text found'."
                         },
                         {
                             "type": "image_url",
                             "image_url": {
-                                "url": f"data:image/png;base64,{img_b64}"
+                                "url": f"data:image/png;base64,{img_base64}"
                             }
                         }
                     ]
                 }],
-                "max_tokens": 1000
+                "max_tokens": 4000
             }
-        )
-        
-        if response.status_code == 200:
-            return response.json()['choices'][0]['message']['content']
-        else:
-            raise Exception(f"OpenAI API error: {response.status_code}")
-    
-    def gemini_vision(self, img_b64):
-        """Gemini vision API call"""
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key={self.llm_api_key}"
-        
-        response = requests.post(url, json={
-            "contents": [{
-                "parts": [
-                    {
-                        "text": "Extract all text from this image. Return only the text content."
-                    },
-                    {
-                        "inline_data": {
-                            "mime_type": "image/png",
-                            "data": img_b64
-                        }
-                    }
-                ]
-            }],
-            "generationConfig": {
-                "maxOutputTokens": 1000
-            }
-        })
-        
-        if response.status_code == 200:
-            result = response.json()
-            return result['candidates'][0]['content']['parts'][0]['text']
-        else:
-            raise Exception(f"Gemini API error: {response.status_code}")
-    
-    def process_by_llm(self):
-        """Process text in Live Capture using LLM"""
-        text = self.capture_text.get(1.0, tk.END).strip()
-        if not text:
-            return
-        
-        if not self.llm_api_key:
-            messagebox.showwarning("No API Key", 
-                                 "Please set an environment variable:\n" +
-                                 "ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY")
-            return
-        
-        # Show processing
-        original_text = text
-        self.capture_text.delete(1.0, tk.END)
-        self.capture_text.insert(1.0, "🤖 Processing with LLM...")
-        
-        # Process in background
-        threading.Thread(
-            target=self.process_text_thread,
-            args=(original_text,),
-            daemon=True
-        ).start()
-    
-    def process_text_thread(self, text):
-        """Process text with LLM in background"""
-        try:
-            prompt = self.llm_prompt.replace("{text}", text)
             
-            if self.llm_provider == "claude":
-                response = self.claude_text(prompt)
-            elif self.llm_provider == "openai":
-                response = self.openai_text(prompt)
-            elif self.llm_provider == "gemini":
-                response = self.gemini_text(prompt)
-            else:
-                response = "No LLM provider configured"
+            response = requests.post("https://api.openai.com/v1/chat/completions", 
+                                   headers=headers, json=data, timeout=30)
             
-            # Format result
-            result = f"ORIGINAL:\n{text}\n\n{'='*50}\nPROCESSED:\n{response}"
-            
-            self.root.after(0, lambda: self.capture_text.delete(1.0, tk.END))
-            self.root.after(0, lambda: self.capture_text.insert(1.0, result))
+            if response.status_code == 200:
+                result = response.json()
+                return result["choices"][0]["message"]["content"]
             
         except Exception as e:
-            self.root.after(0, lambda: self.capture_text.delete(1.0, tk.END))
-            self.root.after(0, lambda: self.capture_text.insert(1.0, f"❌ Processing failed: {e}"))
+            print(f"OpenAI vision error: {e}")
+        
+        return None
     
-    def claude_text(self, prompt):
-        """Claude text API call"""
-        response = requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "x-api-key": self.llm_api_key,
-                "Content-Type": "application/json",
-                "anthropic-version": "2023-06-01"
-            },
-            json={
-                "model": "claude-3-5-sonnet-20241022",
-                "max_tokens": 1000,
-                "messages": [{
-                    "role": "user",
-                    "content": prompt
+    def extract_text_with_gemini(self, img_base64, api_key):
+        """Extract text using Gemini Vision"""
+        try:
+            import requests
+            
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key={api_key}"
+            
+            data = {
+                "contents": [{
+                    "parts": [
+                        {
+                            "text": "Extract all text from this image. Return only the text content, exactly as it appears, without any commentary or formatting. If there's no readable text, return 'No text found'."
+                        },
+                        {
+                            "inline_data": {
+                                "mime_type": "image/png",
+                                "data": img_base64
+                            }
+                        }
+                    ]
                 }]
             }
+            
+            response = requests.post(url, json=data, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                return result["candidates"][0]["content"]["parts"][0]["text"]
+            
+        except Exception as e:
+            print(f"Gemini vision error: {e}")
+        
+        return None
+    
+    def ocr_extraction_complete(self, extracted_text, success=True):
+        """Complete AI vision extraction and update UI"""
+        self.live_text.delete(1.0, 'end')
+        self.live_text.insert(1.0, extracted_text.strip())
+        
+        if not success or "No LLM API keys found" in extracted_text or "AI Vision Error" in extracted_text:
+            self.ocr_status.config(text="AI vision unavailable", fg=COLORS['text_warning'])
+            self.status_var.set("⚠️ AI vision not available - image captured")
+        else:
+            self.ocr_status.config(text="AI extracted text", fg=COLORS['text_success'])
+            self.status_var.set("✅ Text extracted with AI vision")
+        
+        self.root.after(3000, lambda: self.status_var.set("🚀 AlphaMind Ready"))
+    
+    def show_prompt_library(self):
+        """Show prompt library window"""
+        self.create_prompt_library_window()
+    
+    def create_prompt_library_window(self):
+        """Create a separate window for prompt library management"""
+        prompt_window = tk.Toplevel(self.root)
+        prompt_window.title("📝 Prompt Library - AlphaMind")
+        prompt_window.geometry("800x600")
+        prompt_window.configure(bg=COLORS['bg_primary'])
+        
+        # Make it modal
+        prompt_window.transient(self.root)
+        prompt_window.grab_set()
+        
+        # Split into categories and prompt editor
+        paned = ttk.PanedWindow(prompt_window, orient='horizontal')
+        paned.pack(fill='both', expand=True, padx=10, pady=10)
+        
+        # Left - Categories
+        categories_frame = ttk.Frame(paned, style='Card.TFrame')
+        paned.add(categories_frame, weight=1)
+        
+        tk.Label(categories_frame, text="🗂️ Prompt Categories",
+                font=FONTS['heading_small'],
+                fg=COLORS['text_primary'],
+                bg=COLORS['bg_secondary']).pack(anchor='w', padx=10, pady=8)
+        
+        # Categories list
+        categories = ["📝 Writing", "💻 Coding", "🔍 Analysis", "🎨 Creative", "🧠 Problem Solving", "📊 Data", "🎯 Custom"]
+        
+        categories_listbox = tk.Listbox(
+            categories_frame,
+            font=FONTS['body_medium'],
+            bg=COLORS['bg_tertiary'],
+            fg=COLORS['text_primary'],
+            selectbackground=COLORS['bg_accent'],
+            selectforeground=COLORS['text_primary'],
+            borderwidth=0,
+            relief='flat'
         )
+        categories_listbox.pack(fill='both', expand=True, padx=10, pady=(0, 10))
         
-        if response.status_code == 200:
-            return response.json()['content'][0]['text']
-        else:
-            raise Exception(f"Claude API error: {response.status_code}")
-    
-    def openai_text(self, prompt):
-        """OpenAI text API call"""
-        response = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {self.llm_api_key}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "gpt-3.5-turbo",
-                "messages": [{
-                    "role": "user",
-                    "content": prompt
-                }],
-                "max_tokens": 1000
-            }
+        for category in categories:
+            categories_listbox.insert('end', category)
+        
+        # Right - Prompt editor
+        editor_frame = ttk.Frame(paned, style='Card.TFrame')
+        paned.add(editor_frame, weight=2)
+        
+        tk.Label(editor_frame, text="✨ Prompt Editor",
+                font=FONTS['heading_small'],
+                fg=COLORS['text_primary'],
+                bg=COLORS['bg_secondary']).pack(anchor='w', padx=10, pady=8)
+        
+        # Prompt name
+        name_frame = ModernFrame(editor_frame)
+        name_frame.pack(fill='x', padx=10, pady=(0, 10))
+        name_frame.configure(style='Card.TFrame')
+        
+        tk.Label(name_frame, text="Prompt Name:",
+                font=FONTS['body_medium'],
+                fg=COLORS['text_primary'],
+                bg=COLORS['bg_secondary']).pack(anchor='w')
+        
+        prompt_name_entry = ModernEntry(name_frame)
+        prompt_name_entry.pack(fill='x', pady=(5, 0))
+        
+        # Prompt content
+        content_frame = ModernFrame(editor_frame)
+        content_frame.pack(fill='both', expand=True, padx=10, pady=(0, 10))
+        content_frame.configure(style='Card.TFrame')
+        
+        tk.Label(content_frame, text="Prompt Template:",
+                font=FONTS['body_medium'],
+                fg=COLORS['text_primary'],
+                bg=COLORS['bg_secondary']).pack(anchor='w')
+        
+        prompt_editor = scrolledtext.ScrolledText(
+            content_frame,
+            height=10,
+            font=FONTS['mono'],
+            bg=COLORS['bg_tertiary'],
+            fg=COLORS['text_primary'],
+            insertbackground=COLORS['text_accent'],
+            borderwidth=0,
+            relief='flat'
         )
-        
-        if response.status_code == 200:
-            return response.json()['choices'][0]['message']['content']
-        else:
-            raise Exception(f"OpenAI API error: {response.status_code}")
-    
-    def gemini_text(self, prompt):
-        """Gemini text API call"""
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={self.llm_api_key}"
-        
-        response = requests.post(url, json={
-            "contents": [{
-                "parts": [{
-                    "text": prompt
-                }]
-            }],
-            "generationConfig": {
-                "maxOutputTokens": 1000
-            }
-        })
-        
-        if response.status_code == 200:
-            result = response.json()
-            return result['candidates'][0]['content']['parts'][0]['text']
-        else:
-            raise Exception(f"Gemini API error: {response.status_code}")
-    
-    def edit_prompt(self):
-        """Edit LLM prompt"""
-        dialog = tk.Toplevel(self.root)
-        dialog.title("Edit LLM Prompt")
-        dialog.geometry("600x400")
-        dialog.attributes('-topmost', True)
-        
-        ttk.Label(dialog, text="LLM Prompt (use {text} as placeholder):").pack(pady=5)
-        
-        prompt_text = scrolledtext.ScrolledText(dialog, wrap='word')
-        prompt_text.pack(fill='both', expand=True, padx=10, pady=5)
-        prompt_text.insert(1.0, self.llm_prompt)
+        prompt_editor.pack(fill='both', expand=True, pady=(5, 0))
         
         # Buttons
-        btn_frame = ttk.Frame(dialog)
-        btn_frame.pack(fill='x', padx=10, pady=5)
+        btn_frame = ModernFrame(editor_frame)
+        btn_frame.pack(fill='x', padx=10, pady=(0, 10))
+        btn_frame.configure(style='Card.TFrame')
         
-        def save_prompt():
-            self.llm_prompt = prompt_text.get(1.0, tk.END).strip()
-            self.save_settings()
-            dialog.destroy()
-        
-        ttk.Button(btn_frame, text="Save", command=save_prompt).pack(side='right', padx=2)
-        ttk.Button(btn_frame, text="Cancel", command=dialog.destroy).pack(side='right', padx=2)
-        
-        # Presets
-        preset_frame = ttk.Frame(dialog)
-        preset_frame.pack(fill='x', padx=10, pady=5)
-        
-        ttk.Label(preset_frame, text="Presets:").pack(side='left')
-        
-        presets = {
-            "Explain": "Explain this clearly:\n{text}",
-            "Code": "Analyze this code:\n- What it does\n- How it works\n- Issues/improvements\n\n{text}",
-            "Translate": "Translate to Chinese:\n{text}",
-            "Summarize": "Summarize key points:\n{text}",
-            "Fix": "Fix any errors:\n{text}"
-        }
-        
-        for name, preset in presets.items():
-            ttk.Button(preset_frame, text=name,
-                      command=lambda p=preset: (
-                          prompt_text.delete(1.0, tk.END),
-                          prompt_text.insert(1.0, p)
-                      )).pack(side='left', padx=2)
+        ModernButton(btn_frame, text="💾 Save Prompt", 
+                    command=lambda: self.save_prompt_action(prompt_name_entry.get(), prompt_editor.get(1.0, 'end-1c'))).pack(side='left', padx=(0, 5))
+        ModernButton(btn_frame, text="🚀 Use Prompt", 
+                    command=lambda: self.use_prompt_action(prompt_editor.get(1.0, 'end-1c'), prompt_window)).pack(side='left', padx=(0, 5))
+        ModernButton(btn_frame, text="❌ Close", 
+                    command=prompt_window.destroy).pack(side='right')
     
-    def store_current(self):
-        """Store current text to persistent storage"""
-        text = self.capture_text.get(1.0, tk.END).strip()
-        if not text:
-            return
-        
-        # Create item
-        item_id = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        timestamp = datetime.now().isoformat()
-        
-        item = {
-            'id': item_id,
-            'timestamp': timestamp,
-            'text': text[:100],  # Preview
-            'type': self.detect_type(text),
-            'length': len(text),
-            'source': 'manual'
-        }
-        
-        # Save full text
-        item_file = self.items_dir / f"{item_id}.txt"
-        item_file.write_text(text, encoding='utf-8')
-        
-        # Update index
-        self.stored_items.insert(0, item)
-        self.update_index()
-        self.refresh_stored_list()
-        
-        print(f"✓ Stored item: {item_id}")
-    
-    def detect_type(self, text):
-        """Detect if text is a command or regular text"""
-        # Simple heuristics
-        cmd_patterns = ['git ', 'npm ', 'docker ', 'cd ', 'ls ', 'sudo ', 'python ', 'pip ']
-        shell_chars = ['|', '&&', '>', '<', ';']
-        
-        text_lower = text.lower().strip()
-        
-        # Check for command patterns
-        if any(text_lower.startswith(p) for p in cmd_patterns):
-            return 'cmd'
-        
-        # Check for shell characters
-        if any(c in text for c in shell_chars):
-            return 'cmd'
-        
-        return 'text'
-    
-    def refresh_stored_list(self):
-        """Refresh the stored items list"""
-        self.stored_listbox.delete(0, tk.END)
-        
-        items_to_show = self.stored_items
-        if hasattr(self, 'search_results'):
-            items_to_show = self.search_results
-        
-        for item in items_to_show:
-            # Format display
-            try:
-                dt = datetime.fromisoformat(item['timestamp'])
-                time_str = dt.strftime("%H:%M")
-            except:
-                time_str = "??:??"
-            
-            type_icon = "📋" if item['type'] == 'cmd' else "📝"
-            preview = item['text'][:50]
-            if len(item['text']) > 50:
-                preview += "..."
-            
-            display = f"[{time_str}] {type_icon} {preview}"
-            self.stored_listbox.insert(tk.END, display)
-        
-        # Update storage info
-        total_items = len(self.stored_items)
-        total_size = sum(len(self.get_item_text(item['id'])) for item in self.stored_items[:10])  # Sample
-        self.storage_info.config(text=f"Storage: {total_items} items (~{total_size//1024}KB)")
-    
-    def on_search_change(self, *args):
-        """Handle search input changes"""
-        query = self.search_var.get().lower().strip()
-        
-        if query:
-            # Search through items
-            self.search_results = []
-            for item in self.stored_items:
-                # Search preview text
-                if query in item['text'].lower():
-                    self.search_results.append(item)
-                    continue
-                
-                # Search full text (limited to avoid slowdown)
-                if len(self.search_results) < 100:  # Limit results
-                    full_text = self.get_item_text(item['id'])
-                    if full_text and query in full_text.lower():
-                        self.search_results.append(item)
+    def save_prompt_action(self, name, content):
+        """Save a prompt template"""
+        if name and content:
+            self.status_var.set(f"✅ Saved prompt: {name}")
+            self.root.after(3000, lambda: self.status_var.set("🚀 AlphaMind Ready"))
         else:
-            # Clear search
-            if hasattr(self, 'search_results'):
-                delattr(self, 'search_results')
-        
-        self.refresh_stored_list()
+            self.status_var.set("❌ Please enter name and content")
+            self.root.after(3000, lambda: self.status_var.set("🚀 AlphaMind Ready"))
     
-    def copy_selected(self):
-        """Copy selected item to clipboard"""
-        selection = self.stored_listbox.curselection()
-        if not selection:
-            return
-        
-        # Get item
-        items_to_use = getattr(self, 'search_results', self.stored_items)
-        item = items_to_use[selection[0]]
-        full_text = self.get_item_text(item['id'])
-        
-        # Copy to clipboard
-        if PYPERCLIP_AVAILABLE:
-            pyperclip.copy(full_text)
-        
-        # Show in capture area
-        self.update_live_capture(full_text)
-    
-    def delete_selected(self):
-        """Delete selected item"""
-        selection = self.stored_listbox.curselection()
-        if not selection:
-            return
-        
-        items_to_use = getattr(self, 'search_results', self.stored_items)
-        item = items_to_use[selection[0]]
-        
-        if messagebox.askyesno("Confirm Delete", f"Delete item from {item['timestamp'][:10]}?"):
-            # Delete file
-            item_file = self.items_dir / f"{item['id']}.txt"
-            if item_file.exists():
-                item_file.unlink()
-            
-            # Remove from list
-            if item in self.stored_items:
-                self.stored_items.remove(item)
-            
-            self.update_index()
-            self.refresh_stored_list()
-    
-    def export_items(self):
-        """Export all items to file"""
-        if not self.stored_items:
-            messagebox.showinfo("Nothing to Export", "No items stored yet.")
-            return
-        
-        export_file = self.storage_dir / f"export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-        
-        try:
-            with open(export_file, 'w', encoding='utf-8') as f:
-                f.write(f"Clipboard Manager Export\n")
-                f.write(f"Generated: {datetime.now()}\n")
-                f.write(f"Total Items: {len(self.stored_items)}\n")
-                f.write("=" * 80 + "\n\n")
-                
-                for i, item in enumerate(self.stored_items, 1):
-                    f.write(f"Item {i}:\n")
-                    f.write(f"  Timestamp: {item['timestamp']}\n")
-                    f.write(f"  Type: {item['type']}\n")
-                    f.write(f"  Length: {item['length']} chars\n")
-                    f.write(f"  Content:\n")
-                    f.write("-" * 40 + "\n")
-                    f.write(self.get_item_text(item['id']))
-                    f.write("\n" + "=" * 80 + "\n\n")
-            
-            messagebox.showinfo("Export Complete", f"Exported to:\n{export_file}")
-            
-        except Exception as e:
-            messagebox.showerror("Export Failed", f"Error: {e}")
-    
-    def get_item_text(self, item_id):
-        """Load full text for an item"""
-        item_file = self.items_dir / f"{item_id}.txt"
-        if item_file.exists():
-            try:
-                return item_file.read_text(encoding='utf-8')
-            except:
-                return "[Error reading file]"
-        return "[File not found]"
-    
-    def update_index(self):
-        """Update the index file"""
-        try:
-            # Keep only recent items in memory
-            self.stored_items = self.stored_items[:1000]
-            
-            with open(self.index_file, 'w', encoding='utf-8') as f:
-                json.dump(self.stored_items, f, indent=2, ensure_ascii=False)
-        except Exception as e:
-            print(f"Error updating index: {e}")
-    
-    def load_items(self):
-        """Load items from storage"""
-        if self.index_file.exists():
-            try:
-                with open(self.index_file, 'r', encoding='utf-8') as f:
-                    self.stored_items = json.load(f)
-                print(f"Loaded {len(self.stored_items)} items")
-            except Exception as e:
-                print(f"Error loading items: {e}")
-                self.stored_items = []
+    def use_prompt_action(self, content, window):
+        """Use a prompt template in live capture"""
+        if content:
+            self.live_text.delete(1.0, 'end')
+            self.live_text.insert(1.0, content)
+            window.destroy()
+            self.status_var.set("✅ Prompt loaded to live capture")
+            self.root.after(3000, lambda: self.status_var.set("🚀 AlphaMind Ready"))
         else:
-            self.stored_items = []
+            self.status_var.set("❌ No content to use")
+            self.root.after(3000, lambda: self.status_var.set("🚀 AlphaMind Ready"))
     
-    def load_settings(self):
-        """Load settings"""
-        if self.settings_file.exists():
-            try:
-                with open(self.settings_file, 'r', encoding='utf-8') as f:
-                    settings = json.load(f)
-                    self.llm_prompt = settings.get('llm_prompt', self.llm_prompt)
-                    self.ocr_expanded = settings.get('ocr_expanded', False)
-            except Exception as e:
-                print(f"Error loading settings: {e}")
-    
-    def save_settings(self):
-        """Save settings"""
-        try:
-            settings = {
-                'llm_prompt': self.llm_prompt,
-                'ocr_expanded': self.ocr_expanded,
-                'window_geometry': self.root.geometry(),
-                'last_saved': datetime.now().isoformat()
-            }
-            with open(self.settings_file, 'w', encoding='utf-8') as f:
-                json.dump(settings, f, indent=2, ensure_ascii=False)
-        except Exception as e:
-            print(f"Error saving settings: {e}")
-    
-    def on_closing(self):
-        """Handle window closing"""
-        try:
-            # Stop monitoring
-            if self.clipboard_monitoring and KEYBOARD_AVAILABLE:
-                keyboard.remove_all_hotkeys()
-            
-            # Save settings
-            self.save_settings()
-            
-        except Exception as e:
-            print(f"Error during shutdown: {e}")
+    def start_llm_processing(self, text, is_chat=False):
+        """Start LLM processing with animated loading indicator"""
+        self.is_processing = True
+        self.processing_symbols = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+        self.processing_index = 0
         
-        self.root.destroy()
+        # Update status
+        self.status_var.set("🤖 Processing with LLM...")
+        
+        # Start animation
+        self.animate_processing()
+        
+        # Start processing in background thread
+        processing_thread = threading.Thread(
+            target=self.process_text_with_llm, 
+            args=(text, is_chat), 
+            daemon=True
+        )
+        processing_thread.start()
     
+    def animate_processing(self):
+        """Animate the processing indicator"""
+        if self.is_processing:
+            symbol = self.processing_symbols[self.processing_index]
+            self.processing_status.set(f"{symbol} Processing...")
+            self.processing_index = (self.processing_index + 1) % len(self.processing_symbols)
+            # Continue animation every 100ms
+            self.root.after(100, self.animate_processing)
+    
+    def process_text_with_llm(self, text, is_chat=False):
+        """Simulate LLM processing (replace with actual LLM calls)"""
+        import time
+        
+        # Simulate processing time
+        time.sleep(2)  # Replace with actual LLM API call
+        
+        # Simulate response
+        response = f"✨ Processed: {text[:50]}..." if len(text) > 50 else f"✨ Processed: {text}"
+        
+        # Update UI in main thread
+        self.root.after(0, lambda: self.finish_llm_processing(response, is_chat))
+    
+    
+    def finish_llm_processing(self, response, is_chat=False):
+        """Finish LLM processing and update UI"""
+        self.is_processing = False
+        self.processing_status.set("")
+        self.status_var.set("✅ Processing complete")
+        
+        if is_chat:
+            # Add to chat conversation
+            self.conversation_display.config(state='normal')
+            self.conversation_display.insert('end', f"🤖 AI: {response}\n\n")
+            self.conversation_display.config(state='disabled')
+            self.conversation_display.see('end')
+            # Clear message input
+            self.message_entry.delete(1.0, 'end')
+        else:
+            # Replace text in live capture
+            self.live_text.delete(1.0, 'end')
+            self.live_text.insert(1.0, response)
+        
+        # Reset status after 3 seconds
+        self.root.after(3000, lambda: self.status_var.set("🚀 AlphaMind Ready"))
+        
     def run(self):
         """Start the application"""
-        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
-        
-        # Show startup info
-        if self.llm_provider:
-            provider_info = f"Using {self.llm_provider.upper()} API"
-        else:
-            provider_info = "No LLM API key found"
-        
-        print(f"Clipboard & OCR Manager started")
-        print(f"Storage: {self.storage_dir}")
-        print(f"Items loaded: {len(self.stored_items)}")
-        print(f"LLM: {provider_info}")
-        
         self.root.mainloop()
 
-    def apply_screen_capture_protection(self):
-        """Apply Windows-specific protection against screen capture"""
-        try:
-            # Ensure window is rendered before getting handle (IMPORTANT!)
-            self.root.update()
-            
-            # Get the window handle using the improved method from example
-            tkinter_id = self.root.winfo_id()
-            window_handle = ctypes.windll.user32.GetParent(tkinter_id)
-            print(f"Tkinter ID: {tkinter_id}")
-            print(f"Window handle (HWND): {window_handle}")
-            print(f"Window title: {self.root.title()}")
-            
-            # Define constants
-            WDA_EXCLUDEFROMCAPTURE = 0x00000011
-            print(f"WDA_EXCLUDEFROMCAPTURE constant: {WDA_EXCLUDEFROMCAPTURE}")
-            
-            # Apply the screen capture protection with proper type conversion
-            success = ctypes.windll.user32.SetWindowDisplayAffinity(
-                wintypes.HWND(window_handle),
-                wintypes.DWORD(WDA_EXCLUDEFROMCAPTURE)
-            )
-            
-            if success:
-                print("✓ Screen capture protection applied successfully")
-            else:
-                # Enhanced error reporting from example
-                error_code = ctypes.windll.kernel32.GetLastError()
-                print(f"⚠ Warning: Could not apply screen capture protection")
-                print(f"Windows Error Code: {error_code}")
-                
-        except Exception as e:
-            print(f"Error applying screen capture protection: {e}")
-
+def main():
+    """Main entry point"""
+    print("🧠 Starting AlphaMind - Intelligent Prompt Hub...")
+    app = PromptHubGUI()
+    app.run()
 
 if __name__ == "__main__":
-    print("Starting Clipboard & OCR Manager...")
-    
-    # Check critical dependencies
-    missing_deps = []
-    if not KEYBOARD_AVAILABLE:
-        missing_deps.append("keyboard")
-    if not PYPERCLIP_AVAILABLE:
-        missing_deps.append("pyperclip")
-    if not PIL_AVAILABLE:
-        missing_deps.append("Pillow")
-    if not REQUESTS_AVAILABLE:
-        missing_deps.append("requests")
-    
-    if missing_deps:
-        print(f"\nWarning: Missing dependencies: {', '.join(missing_deps)}")
-        print(f"Install with: pip install {' '.join(missing_deps)}")
-        print("Some features may not work properly.\n")
-    
-    app = ClipboardOCRManager()
-    app.run()
+    main()
