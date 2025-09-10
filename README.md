@@ -184,7 +184,7 @@ pip install pillow pyperclip keyboard requests
 ## Development
 
 ### Project Structure
-- `clipboard_ocr_manager.py`: Main application
+- `prompts_hub.py`: Main application
 - `src/lib/env_utils/`: Environment utilities
 - `.env.template`: Environment configuration template
 
