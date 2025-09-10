@@ -1,0 +1,60 @@
+# Clipboard & OCR Manager Dependencies
+# Streamlined requirements for unified clipboard and OCR functionality
+
+# CORE DEPENDENCIES - Required for basic functionality
+# ================================================
+
+# GUI and Image Processing
+Pillow>=9.0.0               # Image handling, screenshots, screen capture
+requests>=2.25.0            # HTTP requests for LLM APIs (Claude, OpenAI, Gemini)
+
+# Text Capture System  
+pyperclip>=1.8.0            # Cross-platform clipboard access
+keyboard>=1.13.0            # Global hotkey monitoring for Ctrl+C detection
+
+# Note: No traditional OCR libraries needed - we use LLM vision APIs for OCR
+# This provides better accuracy and handles complex layouts/fonts
+
+# DEVELOPMENT DEPENDENCIES (uncomment for development)
+# ==================================================
+# pytest>=7.4.0            # Testing framework  
+# black>=23.0.0             # Code formatting
+# flake8>=6.0.0             # Code linting
+
+# INSTALLATION INSTRUCTIONS
+# ========================
+
+# 1. Install Python dependencies:
+#    pip install -r requirements.txt
+
+# 2. Install system-level OCR engine:
+#    Ubuntu/Debian: sudo apt-get install tesseract-ocr tesseract-ocr-eng
+#    Windows: Download from https://github.com/UB-Mannheim/tesseract/wiki
+#    macOS: brew install tesseract
+
+# 3. Set up API keys (for AI features):
+#    export ANTHROPIC_API_KEY="your_claude_key"     # For Claude
+#    export OPENAI_API_KEY="your_openai_key"        # For ChatGPT/GPT-4
+#    export GOOGLE_API_KEY="your_gemini_key"        # For Gemini
+
+# FEATURE BREAKDOWN BY DEPENDENCY
+# ===============================
+# Pillow: Image display, screenshots, canvas preview
+# requests: LLM API calls (Claude, OpenAI, Gemini)
+# pyperclip: Clipboard text access
+# keyboard: Ctrl+C detection and hotkeys
+# pytesseract: Traditional OCR text extraction
+# opencv-python: Image preprocessing, better OCR accuracy
+# numpy: Mathematical operations for image processing
+# easyocr: Alternative AI-powered OCR engine
+
+# NOTES
+# =====
+# - tkinter: Included with Python standard library (GUI framework)
+# - Some features gracefully degrade if optional dependencies are missing
+# - Linux users may need elevated permissions for keyboard monitoring
+# - Windows users may need to install Visual C++ Redistributable for OpenCV
+
+# MINIMUM INSTALLATION (core features only)
+# ========================================
+# pip install Pillow>=10.0.0 pyperclip>=1.8.2 keyboard>=0.13.5 requests>=2.28.0

@@ -1,0 +1,10 @@
+lib
+tests
+venv
+.claude
+config
+examples
+screenshots
+data
+env
+history
