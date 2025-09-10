@@ -1,3 +1,5 @@
+[![☕ Buy me a coffee](https://img.shields.io/badge/☕-Buy%20me%20a%20coffee-orange.svg?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/yuchenghuang)
+
 # 📋 PromptHub
 
 > **Codename**: AlphaMind | **Vision**: Alicization  
