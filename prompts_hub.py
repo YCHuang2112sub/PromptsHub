@@ -19,6 +19,10 @@ from pathlib import Path
 from typing import Dict, List, Optional
 import subprocess
 import requests
+from dotenv import load_dotenv
+
+# Load environment variables from .env.local if present
+load_dotenv('.env.local')
 
 # Modern color scheme inspired by VS Code Dark and Discord
 COLORS = {
@@ -254,7 +258,7 @@ Text to explain:
         if gemini_key:
             self.llm_provider = "gemini"
             self.llm_api_key = gemini_key
-            self.llm_model = "gemini-pro"
+            self.llm_model = "gemini-1.5-flash"
             return
             
         print("No LLM API keys found in environment variables")
@@ -820,7 +824,8 @@ Text to explain:
     
     def gemini_text(self, prompt):
         """Gemini text API call - Updated for AlphaMind"""
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={self.llm_api_key}"
+        model = self.llm_model if self.llm_model else "gemini-1.5-flash"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={self.llm_api_key}"
         
         response = requests.post(
             url,
@@ -1410,7 +1415,7 @@ Text to explain:
         try:
             import requests
             
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key={api_key}"
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
             
             data = {
                 "contents": [{
@@ -1606,17 +1611,30 @@ Text to explain:
             self.root.after(100, self.animate_processing)
     
     def process_text_with_llm(self, text, is_chat=False):
-        """Simulate LLM processing (replace with actual LLM calls)"""
-        import time
-        
-        # Simulate processing time
-        time.sleep(2)  # Replace with actual LLM API call
-        
-        # Simulate response
-        response = f"✨ Processed: {text[:50]}..." if len(text) > 50 else f"✨ Processed: {text}"
-        
-        # Update UI in main thread
-        self.root.after(0, lambda: self.finish_llm_processing(response, is_chat))
+        """Process text with actual LLM calls"""
+        try:
+            # Determine prompt: use text directly for chat, or template for enchant
+            if is_chat:
+                prompt = text
+            else:
+                prompt = self.llm_prompt.replace("{text}", text)
+            
+            # Call appropriate provider
+            if self.llm_provider == "claude":
+                response = self.claude_text(prompt)
+            elif self.llm_provider == "openai":
+                response = self.openai_text(prompt)
+            elif self.llm_provider == "gemini":
+                response = self.gemini_text(prompt)
+            else:
+                response = "❌ No LLM provider configured. Please check your .env file."
+
+            # Update UI in main thread
+            self.root.after(0, lambda: self.finish_llm_processing(response, is_chat))
+            
+        except Exception as e:
+            error_msg = f"❌ Error: {str(e)}"
+            self.root.after(0, lambda: self.finish_llm_processing(error_msg, is_chat))
     
     
     def finish_llm_processing(self, response, is_chat=False):
