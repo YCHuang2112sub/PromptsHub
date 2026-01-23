@@ -1,57 +1,70 @@
-[![☕ Buy me a coffee](https://img.shields.io/badge/☕-Buy%20me%20a%20coffee-orange.svg?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/yuchenghuang)
+﻿#  PromptsHub: AlphaMind Edition (v3.0)
 
-# 📋 PromptsHub
+> **Codename**: AlphaMind | **Vision**: Alicization | **Status**: Active Symbiosis
 
-> **Codename**: AlphaMind | **Vision**: Alicization  
+PromptsHub is a high-performance workspace for AI-human collaboration. It transforms your desktop into an intelligent environment that captures, processes, and reverse-engineers text and vision in real-time.
 
-A clean, minimal tool for clipboard monitoring, screen OCR, and LLM text processing.
+---
 
-## ✨ AlphaMind Edition Features
+##  Key Capabilities
 
-### 🎯 Live Capture & Vision
-- **Smart Clipboard**: Auto-captures copied text for instant processing.
-- **Screen OCR**: Snipping tool to extract text from any screen area using LLM Vision.
-- **Vision Chat**: Upload images or take screenshots and ask the AI questions about them.
-- **Privacy Mode**: "Exclude Window" option to prevent the app from capturing itself (**Enabled by default** for enhanced security).
+###  Live Capture & Vision
+- **Smart Clipboard**: Automatically captures text copies for instant AI refinement.
+- **Side-by-Side Editor**: Real-time comparison view showing original input vs. AI-processed output.
+- **Screen OCR**: Extract text from any screen area using Gemini Vision APIs.
+- **Vision Chat**: Upload images or screenshots and ask the AI complex questions about them.
+- **Smart Region Monitor**: 
+  - Place a floating window over any area (e.g., a code editor, a chat, or a video).
+  - The system auto-detects changes and triggers OCR/Analysis instantly.
+- **Privacy Mode (Default-ON)**: Prevents the application window from being captured in its own screenshots/recordings.
 
-### 🤖 LLM Playground
-- **Multi-Provider Support**: Switch seamlessy between **Gemini**, **OpenAI**, and **Claude**.
-- **Enchant**: Instantly refine or polish text using AI templates.
-- **Chat Interface**: Standard chat for brainstorming and assistance.
+###  Intelligence Suite
+- **Multi-Provider Support**: Seamless switching between **Gemini 2.5 Flash**, **GPT-4**, and **Claude 3**.
+- ** Extract Prompt**: Reverse-engineer any text output into a reusable prompt template with `["Input"]` placeholders.
+- **"Enchant"**: Instantly polish, professionalize, or transform text using pre-built AI templates.
+- **Audio Intelligence**: Real-time system audio transcription directly into your workspace.
 
-### 📚 Prompt Library
-- **Organized Storage**: Save prompts with dynamic categories.
-- **Template System**: Create reusable prompt templates.
-- **Search**: Quickly find past history or saved prompts.
+###  Prompt Library & Management
+- **Foldable Sidebar**: Always-accessible prompt library for side-by-side editing and template application.
+- **Dynamic Categories**: Organize your prompts with icons and custom groups.
+- **Smart History**: Persistent storage of every capture with searchable snippets.
 
-## Installation
+---
+
+##  Getting Started
 
 ### Prerequisites
 ```bash
 # Core dependencies
-pip install customtkinter pillow requests pyperclip packaging
-
-# Optional: For enhanced functionality
-pip install python-dotenv
+python -m pip install customtkinter pillow requests pyperclip python-dotenv sounddevice numpy SpeechRecognition
 ```
 
-### Setup
-1. Clone or download the repository
-2. Copy `.env.template` to `.env` (optional)
-3. Add your API keys to `.env`:
-```env
-ANTHROPIC_API_KEY=your_claude_api_key
-OPENAI_API_KEY=your_openai_api_key  
-GEMINI_API_KEY=your_gemini_api_key
-```
+### Configuration
+1. Clone the repository.
+2. Copy `.env.template` to `.env.local`.
+3. Add your API keys:
+   ```env
+   GOOGLE_API_KEY=AIza...
+   OPENAI_API_KEY=sk-...
+   ANTHROPIC_API_KEY=sk-ant-...
+   ```
 
-## Usage
-
-### Starting the Application
-```bash
+### Usage
+Run with Administrator privileges (recommended for global hotkeys and monitoring):
+```powershell
 python prompts_hub.py
 ```
 
-## License
+---
 
-MIT License
+##  Privacy & Security
+- **Privacy Mode is enabled by default** on Windows. This uses `WDA_EXCLUDEFROMCAPTURE` to ensure your PromptsHub workspace stays private during screen shares or OCR captures.
+- **Local Database**: All library and history data is stored locally in `prompts_hub.db`.
+
+---
+
+##  License & Acknowledgments
+
+Apache License 2.0 - See [LICENSE](file:///c:/Users/User/Downloads/workspace/PromptsHub/LICENSE) and [NOTICE](file:///c:/Users/User/Downloads/workspace/PromptsHub/NOTICE) for details.
+
+Developed with by Yu-Cheng Huang.

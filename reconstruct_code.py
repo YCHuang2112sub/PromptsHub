@@ -1,4 +1,8 @@
-﻿#!/usr/bin/env python3
+import os
+
+path = 'prompts_hub.py'
+
+content = r'''#!/usr/bin/env python3
 """
 PromptHub - AlphaMind Edition (v3.0)
 Refactored with CustomTkinter and Modular Architecture.
@@ -22,28 +26,19 @@ import ctypes
 from ctypes import windll
 import hashlib
 
-# Import Modular Tabs and Utils
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
-from gui.tabs.live_capture import VisionStudioTab
-from gui.tabs.monitor_tab import MonitorTab
-from gui.tabs.audio_tab import AudioTab
-from gui.tabs.text_tab import TextTab
-from gui.tabs.prompt_library import PromptLibraryTab
-from utils.diagnostic_helper import setup_diagnostics, debug_log
-
-# Initialize Diagnostics correctly
-setup_diagnostics()
-debug_log("AlphaMind system starting...")
-
 # Optional: Keyboard for advanced hotkeys if needed, but polling works for clipboard
 try:
     import pyperclip
 except ImportError:
     pyperclip = None
 
+# Import Modular Tabs
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+from gui.tabs.live_capture import LiveCaptureTab
+from gui.tabs.prompt_library import PromptLibraryTab
+
 # Load environment variables
 load_dotenv('.env.local')
-debug_log("Environment variables loaded.")
 
 # Setup CustomTkinter Theme
 ctk.set_appearance_mode("Dark")
@@ -53,13 +48,11 @@ class DatabaseManager:
     """Handles all SQLite database operations"""
     
     def __init__(self, db_path: str = "prompts_hub.db"):
-        debug_log(f"Initializing DatabaseManager with {db_path}...")
         self.db_path = db_path
         self.init_db()
 
     def init_db(self):
         """Initialize database tables"""
-        debug_log("Checking/Creating database tables...")
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             
@@ -189,40 +182,8 @@ class DatabaseManager:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM history WHERE id = ?", (item_id,))
 
-class ScreenSelector(tk.Toplevel):
-    def __init__(self, callback):
-        super().__init__()
-        self.callback = callback
-        self.attributes('-alpha', 0.2)
-        self.attributes('-fullscreen', True)
-        self.attributes('-topmost', True)
-        self.canvas = tk.Canvas(self, cursor="cross", bg="grey", highlightthickness=0)
-        self.canvas.pack(fill="both", expand=True)
-        self.start_x = self.start_y = self.rect = None
-        self.bind("<ButtonPress-1>", self.on_press)
-        self.bind("<B1-Motion>", self.on_drag)
-        self.bind("<ButtonRelease-1>", self.on_release)
-        self.bind("<Escape>", lambda e: self.destroy())
-
-    def on_press(self, event):
-        self.start_x, self.start_y = event.x, event.y
-        self.rect = self.canvas.create_rectangle(self.start_x, self.start_y, 1, 1, outline='cyan', width=2)
-    def on_drag(self, event):
-        self.canvas.coords(self.rect, self.start_x, self.start_y, event.x, event.y)
-    def on_release(self, event):
-        x1, y1, x2, y2 = self.canvas.coords(self.rect)
-        # Convert canvas coords to screen coords
-        sx1, sy1 = self.winfo_rootx() + x1, self.winfo_rooty() + y1
-        sx2, sy2 = self.winfo_rootx() + x2, self.winfo_rooty() + y2
-        self.withdraw()
-        import time; time.sleep(0.2)
-        img = ImageGrab.grab(bbox=(min(sx1,sx2), min(sy1,sy2), max(sx1,sx2), max(sy1,sy2)))
-        self.callback(img)
-        self.destroy()
-
 class AlphaMindApp(ctk.CTk):
     def __init__(self):
-        debug_log("Initializing AlphaMindApp...")
         super().__init__()
         self.title("PromptHub - AlphaMind")
         self.geometry("1100x700")
@@ -230,51 +191,31 @@ class AlphaMindApp(ctk.CTk):
         self.status_var = tk.StringVar(value="AlphaMind Ready")
         self.is_processing = False
         self.llm_prompt = "Refine the following text to be more professional, concise, and clear:\n\n{text}"
-        debug_log("Detecting LLM provider...")
         self.detect_llm_provider()
-        debug_log("Setting up UI...")
         self.setup_ui()
         self.after(1000, self.start_clipboard_monitor)
-        # Apply initial exclusion from the consolidated app-level switch
-        self.after(500, lambda: self.set_capture_exclusion(True))
+        if hasattr(self, 'live_capture_tab') and self.live_capture_tab.exclude_var.get():
+            self.after(500, lambda: self.set_capture_exclusion(True))
 
     def setup_ui(self):
-        # 1. Initialize variables used by UI components
-        self.privacy_var = ctk.BooleanVar(value=True)
-        
-        # 2. Create UI Shell
         self.create_header()
         self.main_container = ctk.CTkFrame(self, fg_color="transparent")
         self.main_container.pack(fill="both", expand=True, padx=10, pady=10)
         self.sidebar_visible = False
-        self.sidebar_frame = ctk.CTkFrame(self.main_container, width=300)
-        self.sidebar_frame.pack_propagate(False)
-        self.sidebar_frame.pack_forget() 
-        
+        self.sidebar_frame = ctk.CTkFrame(self.main_container, width=0)
+        self.sidebar_frame.pack(side="left", fill="y", padx=0)
         self.tab_view = ctk.CTkTabview(self.main_container)
         self.tab_view.pack(side="right", fill="both", expand=True)
-        self.tab_view.add("Vision Studio")
-        self.tab_view.add("Text Workspace")
-        self.tab_view.add("Region Monitor")
-        self.tab_view.add("Audio Intelligence")
-        
-        self.vision_tab = VisionStudioTab(self.tab_view.tab("Vision Studio"), self)
-        self.vision_tab.pack(fill="both", expand=True)
-        
-        self.text_tab = TextTab(self.tab_view.tab("Text Workspace"), self)
-        self.text_tab.pack(fill="both", expand=True)
-        
-        self.monitor_tab = MonitorTab(self.tab_view.tab("Region Monitor"), self)
-        self.monitor_tab.pack(fill="both", expand=True)
-        
-        self.audio_tab = AudioTab(self.tab_view.tab("Audio Intelligence"), self)
-        self.audio_tab.pack(fill="both", expand=True)
-        
+        self.tab_view.add("Live Capture")
+        self.tab_view.add("Prompt Library")
+        self.tab_view.add("LLM Playground")
+        self.live_capture_tab = LiveCaptureTab(self.tab_view.tab("Live Capture"), self)
+        self.live_capture_tab.pack(fill="both", expand=True)
+        self.prompt_library_tab = PromptLibraryTab(self.tab_view.tab("Prompt Library"), self)
+        self.prompt_library_tab.pack(fill="both", expand=True)
         self.setup_sidebar()
+        self.create_llm_playground(self.tab_view.tab("LLM Playground"))
         self.create_footer()
-        
-        # Apply initial exclusion
-        self.set_capture_exclusion(True)
 
     def setup_sidebar(self):
         self.sidebar_label = ctk.CTkLabel(self.sidebar_frame, text="Library Sidebar", font=("Segoe UI", 12, "bold"))
@@ -286,35 +227,40 @@ class AlphaMindApp(ctk.CTk):
         if self.sidebar_visible:
             self.sidebar_frame.pack_forget()
             self.sidebar_visible = False
-            self.status_var.set("Library Sidebar hidden")
+            self.status_var.set("Sidebar hidden")
         else:
-            # Pack it before the tab_view to ensure it stays on the left
-            self.tab_view.pack_forget()
             self.sidebar_frame.pack(side="left", fill="y", padx=(0, 10))
             self.sidebar_frame.configure(width=300)
-            self.sidebar_frame.pack_propagate(False)
-            self.tab_view.pack(side="right", fill="both", expand=True)
             self.sidebar_visible = True
-            self.status_var.set("Library Sidebar visible")
+            self.status_var.set("Sidebar visible")
 
     def create_header(self):
         header_frame = ctk.CTkFrame(self, height=50, corner_radius=0)
         header_frame.pack(fill="x", side="top")
-        self.sidebar_toggle_btn = ctk.CTkButton(header_frame, text="☰ Library", width=120, command=self.toggle_sidebar, fg_color="#3e3e42", hover_color="#555")
+        self.sidebar_toggle_btn = ctk.CTkButton(header_frame, text="X", width=40, command=self.toggle_sidebar, fg_color="transparent", hover_color="#333")
         self.sidebar_toggle_btn.pack(side="left", padx=10)
         title_label = ctk.CTkLabel(header_frame, text="PromptHub", font=("Segoe UI", 20, "bold"))
         title_label.pack(side="left", padx=10, pady=10)
-        
-        # Privacy Mode Toggle (Top-Right)
-        self.privacy_switch = ctk.CTkSwitch(header_frame, text="Hide App", variable=self.privacy_var, command=self.update_privacy_mode)
-        self.privacy_switch.pack(side="right", padx=20)
-        ctk.CTkLabel(header_frame, text="Privacy Mode:", font=("Segoe UI", 10)).pack(side="right", padx=0)
 
     def create_footer(self):
         footer_frame = ctk.CTkFrame(self, height=30, corner_radius=0)
         footer_frame.pack(fill="x", side="bottom")
         ctk.CTkLabel(footer_frame, textvariable=self.status_var, font=("Consolas", 10)).pack(side="left", padx=10)
         ctk.CTkLabel(footer_frame, text=f"Provider: {self.llm_provider.upper() if self.llm_provider else 'None'}", font=("Consolas", 10)).pack(side="right", padx=10)
+
+    def create_llm_playground(self, parent):
+        chat_frame = ctk.CTkFrame(parent)
+        chat_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        self.chat_display = ctk.CTkTextbox(chat_frame, font=("Segoe UI", 12))
+        self.chat_display.pack(fill="both", expand=True, pady=(0, 10))
+        self.chat_display.insert("1.0", "Welcome to AlphaMind Chat.\n\n")
+        self.chat_display.configure(state="disabled")
+        input_frame = ctk.CTkFrame(chat_frame, fg_color="transparent")
+        input_frame.pack(fill="x")
+        self.chat_input = ctk.CTkEntry(input_frame, placeholder_text="Type your message...")
+        self.chat_input.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        self.chat_input.bind('<Return>', lambda e: self.send_chat_message())
+        ctk.CTkButton(input_frame, text="Send", width=80, command=self.send_chat_message).pack(side="right")
 
     def detect_llm_provider(self):
         self.llm_provider = None
@@ -353,28 +299,23 @@ class AlphaMindApp(ctk.CTk):
 
     def finish_processing(self, response, is_chat, target_pane):
         self.status_var.set("Complete")
-        if target_pane == "text_studio":
-            self.text_tab.update_output(response)
-        elif target_pane == "audio_insight":
-            self.audio_tab.update_live_text(response, pane="audio_insight")
-        elif target_pane == "monitor":
-            self.monitor_tab.update_insight(response)
+        if is_chat:
+            self.chat_display.configure(state="normal")
+            self.chat_display.insert("end", f"AI: {response}\n\n")
+            self.chat_display.configure(state="disabled")
+            self.chat_input.delete(0, "end")
         else:
-            self.vision_tab.update_live_text(response, pane=target_pane)
+            self.live_capture_tab.update_live_text(response, pane=target_pane)
 
-    def use_prompt_template(self, content):
-        """Loads a prompt template into the Vision Studio for immediate use"""
-        debug_log("Applying prompt template from Library")
-        self.vision_tab.update_live_text(content, pane="live")
-        self.tab_view.set("Vision Studio")
-        self.status_var.set("🚀 Prompt template loaded")
+    def send_chat_message(self):
+        msg = self.chat_input.get().strip()
+        if msg:
+            self.chat_display.configure(state="normal")
+            self.chat_display.insert("end", f"You: {msg}\n")
+            self.chat_display.configure(state="disabled")
+            self.start_llm_processing(msg, is_chat=True)
 
     def start_clipboard_monitor(self):
-        debug_log("Starting clipboard monitor thread...")
-        threading.Thread(target=self._clipboard_loop, daemon=True).start()
-
-    def _clipboard_loop(self):
-        import time
         last_clipboard = ""
         while True:
             try:
@@ -382,42 +323,28 @@ class AlphaMindApp(ctk.CTk):
                 if current != last_clipboard and current.strip():
                     last_clipboard = current
                     self.db.add_history(current)
-                    self.after(0, lambda t=current: self.vision_tab.update_live_text(t))
+                    self.after(0, lambda: self.live_capture_tab.update_live_text(current))
                     self.after(0, lambda: self.status_var.set("Clipboard captured"))
-            except Exception as e:
-                debug_log(f"Clipboard error: {e}", level="error")
+            except: pass
+            import time
             time.sleep(1)
-
-    def update_privacy_mode(self):
-        # Callback for the header switch
-        exclude = self.privacy_var.get()
-        self.set_capture_exclusion(exclude)
 
     def set_capture_exclusion(self, exclude: bool):
         if platform.system() != "Windows": return
         try:
             hwnd = windll.user32.GetParent(self.winfo_id()) or self.winfo_id()
             windll.user32.SetWindowDisplayAffinity(hwnd, 0x11 if exclude else 0x00)
-            self.status_var.set(f"Privacy Mode: {'ON' if exclude else 'OFF'}")
+            self.status_var.set("Window hidden from capture" if exclude else "Window visible")
         except: pass
-
-    def initiate_screen_capture(self, tab):
-        debug_log("Initiating screen capture...")
-        ScreenSelector(lambda img: self.screen_capture_complete(tab, img))
-
-    def initiate_screen_capture_for_monitor(self):
-        # Specific trigger for the monitor tab
-        self.initiate_screen_capture(self.monitor_tab)
 
     def screen_capture_complete(self, tab, img):
         tab.set_captured_image(img)
 
     def extract_text_from_current_image(self, tab):
         if hasattr(tab, 'current_image') and tab.current_image:
-            # Pass the tab itself to route the result back
-            self.process_vision_request(tab.current_image, tab=tab)
+            self.process_vision_request(tab.current_image)
 
-    def process_vision_request(self, image, tab=None, prompt_text="Extract text", is_chat=False):
+    def process_vision_request(self, image, prompt_text="Extract text", is_chat=False):
         try:
             import io, base64
             buffered = io.BytesIO()
@@ -429,11 +356,7 @@ class AlphaMindApp(ctk.CTk):
                 resp = requests.post(url, json=data)
                 if resp.status_code == 200:
                     res = resp.json()['candidates'][0]['content']['parts'][0]['text']
-                    # Route to the appropriate tab depending on where the request came from
-                    self.after(0, lambda: tab.update_live_text(res, pane="after") if hasattr(tab, 'update_live_text') else None)
-                    # If it's the monitor tab, use its specific update method
-                    if hasattr(tab, 'update_insight'):
-                        self.after(0, lambda: tab.update_insight(res))
+                    self.after(0, lambda: self.live_capture_tab.update_live_text(res))
         except: pass
 
 class RegionMonitorWindow(tk.Toplevel):
@@ -473,54 +396,35 @@ class AudioTranscriptionManager:
                 try:
                     audio = r.listen(source, timeout=5)
                     text = r.recognize_google(audio)
-                    # Use the new Audio Intelligence tab
-                    self.app.after(0, lambda t=text: self.app.audio_tab.update_transcription(t))
+                    self.app.after(0, lambda t=text: self.app.live_capture_tab.update_live_text(f"[Audio] {t}\n", pane="after"))
                 except: continue
     def stop_transcription(self):
         self.is_recording = False
 
 if __name__ == "__main__":
-    debug_log("Entry point reached.")
     app = AlphaMindApp()
     app.region_monitor = None
     app.last_region_hash = None
     def check_region():
-    def start_region_monitoring(self):
-        if not self.region_monitor:
-            self.region_monitor = RegionMonitorWindow(self)
-            self.status_var.set("Region monitoring active")
-            self.check_region_change()
-
-    def stop_region_monitoring(self):
-        if self.region_monitor:
-            try: self.region_monitor.destroy()
-            except: pass
-            self.region_monitor = None
-            self.status_var.set("Region monitoring stopped")
-
-    def check_region_change(self):
-        if self.region_monitor:
+        if app.region_monitor:
             try:
-                x, y, w, h = self.region_monitor.winfo_x(), self.region_monitor.winfo_y(), self.region_monitor.winfo_width(), self.region_monitor.winfo_height()
-                self.region_monitor.attributes('-alpha', 0.0)
-                self.update(); img = ImageGrab.grab(bbox=(x, y, x+w, y+h))
-                self.region_monitor.attributes('-alpha', 0.5)
+                x, y, w, h = app.region_monitor.winfo_x(), app.region_monitor.winfo_y(), app.region_monitor.winfo_width(), app.region_monitor.winfo_height()
+                app.region_monitor.attributes('-alpha', 0.0)
+                app.update(); img = ImageGrab.grab(bbox=(x, y, x+w, y+h))
+                app.region_monitor.attributes('-alpha', 0.5)
                 hsh = hashlib.md5(img.tobytes()).hexdigest()
-                if hsh != self.last_region_hash:
-                    self.after(0, lambda: self.monitor_tab.add_log("📸 Change detected. Processing..."))
-                    self.screen_capture_complete(self.monitor_tab, img)
-                    self.extract_text_from_current_image(self.monitor_tab)
-                self.last_region_hash = hsh
+                if app.last_region_hash and hsh != app.last_region_hash:
+                    app.screen_capture_complete(app.live_capture_tab, img)
+                    app.extract_text_from_current_image(app.live_capture_tab)
+                app.last_region_hash = hsh
             except: pass
-            self.after(2000, self.check_region_change)
-
-if __name__ == "__main__":
-    debug_log("Entry point reached.")
-    app = AlphaMindApp()
-    app.region_monitor = None
-    app.last_region_hash = None
+            app.after(2000, check_region)
+    app.check_region_change = check_region
+    app.start_region_monitoring = lambda: (setattr(app, 'region_monitor', RegionMonitorWindow(app)), app.check_region_change())
+    app.stop_region_monitoring = lambda: setattr(app, 'region_monitor', None)
     app.audio_manager = AudioTranscriptionManager(app)
-    debug_log("Starting mainloop...")
     app.mainloop()
-    debug_log("Starting mainloop...")
-    app.mainloop()
+'''
+
+with open(path, 'w', encoding='utf-8') as f:
+    f.write(content)
