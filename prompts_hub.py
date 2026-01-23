@@ -452,14 +452,18 @@ class AlphaMindApp(ctk.CTk):
         except: pass
 
     def start_region_monitoring(self):
+        if not hasattr(self, 'last_selected_region') or not self.last_selected_region:
+            messagebox.showwarning("No Region", "Please click 'Select Region' first to define a surveillance area.")
+            return
+
         if not hasattr(self, 'region_monitor') or not self.region_monitor:
             self.region_monitor = RegionMonitorWindow(self)
             
             # Use the last dragged area if available
             if hasattr(self, 'last_selected_region'):
                 x, y, w, h = self.last_selected_region
-                self.region_monitor.geometry(f"{w}x{h}+{x}+{y}")
-                self.monitor_tab.add_log(f"📍 Resuming region: {w}x{h} at {x},{y}")
+                self.region_monitor.geometry(f"{int(w)}x{int(h)}+{int(x)}+{int(y)}")
+                self.monitor_tab.add_log(f"📍 Resuming region: {int(w)}x{int(h)} at {int(x)},{int(y)}")
             
             self.status_var.set("Region monitoring active")
             self.last_region_hash = None
@@ -506,7 +510,9 @@ class RegionMonitorWindow(tk.Toplevel):
     def start_move(self, event):
         self.x, self.y = event.x, event.y
     def do_move(self, event):
-        self.geometry(f"+{self.winfo_x() + event.x - self.x}+{self.winfo_y() + event.y - self.y}")
+        new_x = int(self.winfo_x() + event.x - self.x)
+        new_y = int(self.winfo_y() + event.y - self.y)
+        self.geometry(f"+{new_x}+{new_y}")
     def close(self):
         self.parent.stop_region_monitoring()
         self.destroy()

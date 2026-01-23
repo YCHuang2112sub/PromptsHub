@@ -3,6 +3,8 @@ import sounddevice as sd
 import numpy as np
 import threading
 import queue
+import wave
+import struct
 from utils.diagnostic_helper import debug_log
 from datetime import datetime
 
@@ -137,16 +139,19 @@ class AudioTab(ctk.CTkFrame):
     def _process_buffer(self):
         # Flatten buffer
         combined = np.concatenate(self.recording_buffer)
-        # We need to pass this to the app's audio manager or process locally
-        # Since SpeechRecognition needs a file/source, we'd ideally use a newer API or Whisper
-        # For this refactor, we'll use the existing SpeechRecognition flow by saving to temp
-        import scipy.io.wavfile as wav
         import tempfile
         import os
         
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tf:
-            wav.write(tf.name, 44100, (combined * 32767).astype(np.int16))
             temp_name = tf.name
+            # Write WAV manually using built-in wave module
+            with wave.open(temp_name, 'wb') as wav_file:
+                wav_file.setnchannels(1)
+                wav_file.setsampwidth(2) # 16-bit
+                wav_file.setframerate(44100)
+                # Convert float32 [-1, 1] to int16
+                audio_data = (combined * 32767).astype(np.int16).tobytes()
+                wav_file.writeframes(audio_data)
             
         try:
             import speech_recognition as sr
