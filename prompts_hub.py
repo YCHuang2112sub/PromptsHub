@@ -550,7 +550,14 @@ class AlphaMindApp(ctk.CTk):
                     self.extract_text_from_current_image(self.monitor_tab)
                 self.last_region_hash = hsh
             except: pass
-            self.after(2000, self.check_region_change)
+            
+            # Dynamic polling interval from slider (default to 2s if unavailable)
+            interval = 2000
+            if hasattr(self, 'monitor_tab') and hasattr(self.monitor_tab, 'interval_var'):
+                 # Convert seconds to ms
+                 interval = self.monitor_tab.interval_var.get() * 1000
+            
+            self.after(interval, self.check_region_change)
 
 
 class RegionMonitorWindow(tk.Toplevel):

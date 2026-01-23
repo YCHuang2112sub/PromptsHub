@@ -45,6 +45,15 @@ class MonitorTab(ctk.CTkFrame):
         ctk.CTkLabel(header, text="Target:", font=("Segoe UI", 10)).pack(side="left", padx=(15, 5))
         self.lang_menu = ctk.CTkOptionMenu(header, values=list(self.langs.keys()), variable=self.lang_var, width=130)
         self.lang_menu.pack(side="left", padx=5)
+
+        # Rate Limit Slider
+        self.interval_var = ctk.IntVar(value=5) # Default 5 seconds
+        ctk.CTkLabel(header, text="Rate:", font=("Segoe UI", 10)).pack(side="left", padx=(15, 5))
+        self.interval_slider = ctk.CTkSlider(header, from_=2, to=30, number_of_steps=28, variable=self.interval_var, width=100)
+        self.interval_slider.pack(side="left", padx=5)
+        self.interval_label = ctk.CTkLabel(header, textvariable=self.interval_var, font=("Consolas", 10), width=20)
+        self.interval_label.pack(side="left", padx=0)
+        ctk.CTkLabel(header, text="s", font=("Segoe UI", 10)).pack(side="left", padx=0)
         
         # 📜 Triple Column Content
         self.content = ctk.CTkFrame(self, fg_color="transparent")
