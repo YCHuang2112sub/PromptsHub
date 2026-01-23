@@ -434,10 +434,19 @@ class AlphaMindApp(ctk.CTk):
 
     def extract_text_from_current_image(self, tab):
         if hasattr(tab, 'current_image') and tab.current_image:
-            prompt = "Extract text"
-            if hasattr(tab, 'lang_var') and tab.lang_var.get() != "Original":
-                target_lang = tab.lang_var.get()
-                prompt = f"Extract text from this image and translate it to {target_lang}. Return both original and translation."
+            target_lang = tab.lang_var.get() if hasattr(tab, 'lang_var') else "Original"
+            prompt = (
+                "1. Extract all text from this image exactly as it appears.\n"
+                "2. Provide a professional analysis or summary."
+            )
+            if target_lang != "Original":
+                prompt += f"\n3. Translate the analysis/summary to {target_lang}."
+            
+            prompt += (
+                "\n\nIMPORTANT: Format your response exactly as follows:\n"
+                "[EXTRACTED_TEXT]\n(raw extracted text here)\n"
+                "[ANALYSIS]\n(your analysis or translation here)"
+            )
             
             # Pass the tab itself to route the result back
             self.process_vision_request(tab.current_image, tab=tab, prompt_text=prompt)
@@ -466,11 +475,21 @@ class AlphaMindApp(ctk.CTk):
 
                 if resp.status_code == 200:
                     res = resp.json()['candidates'][0]['content']['parts'][0]['text']
-                    # Route to the appropriate tab depending on where the request came from
-                    self.after(0, lambda: tab.update_live_text(res, pane="after") if hasattr(tab, 'update_live_text') else None)
-                    # If it's the monitor tab, use its specific update method
-                    if hasattr(tab, 'update_insight'):
-                        self.after(0, lambda: tab.update_insight(res))
+                    
+                    if "[EXTRACTED_TEXT]" in res and "[ANALYSIS]" in res:
+                        try:
+                            ocr_part = res.split("[EXTRACTED_TEXT]")[1].split("[ANALYSIS]")[0].strip()
+                            ai_part = res.split("[ANALYSIS]")[1].strip()
+                            self.after(0, lambda: tab.update_extracted_text(ocr_part) if hasattr(tab, 'update_extracted_text') else None)
+                            self.after(0, lambda: tab.update_insight(ai_part) if hasattr(tab, 'update_insight') else None)
+                        except:
+                            self.after(0, lambda: tab.update_live_text(res, pane="after") if hasattr(tab, 'update_live_text') else None)
+                    else:
+                        # Route to the appropriate tab depending on where the request came from
+                        self.after(0, lambda: tab.update_live_text(res, pane="after") if hasattr(tab, 'update_live_text') else None)
+                        # If it's the monitor tab, use its specific update method
+                        if hasattr(tab, 'update_insight'):
+                            self.after(0, lambda: tab.update_insight(res))
         except Exception as e:
             debug_log(f"Vision Request Error: {e}")
 

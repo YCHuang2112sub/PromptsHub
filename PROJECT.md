@@ -13,17 +13,20 @@
   - [x] Gemini/OpenAI/Claude Integration
   - [x] Basic History & Persistence
 
-- [ ] **Phase 2: Enhanced Vision & Management** (Current Focus)
-  - [x] **Advanced Vision**:
-    - [x] Full Screen Screenshot
-    - [x] Image Upload
-    - [x] Vision Chat (Ask questions about images)
-    - [x] Window Capture Exclusion (Privacy Mode)
-  - [x] **Library Management**:
-    - [x] Dynamic Categories (Add/Remove)
-    - [x] Save Captured Text to Library
-  - [x] **Refinement**:
-    - [x] "Enchant" Text Logic (Polishing/Refining)
+- [x] **Phase 2: Professional Studio Architecture (V3)**
+  - [x] **Monitor Studio**:
+    - [x] 3-Column Layout (Log | Extract | Insight)
+    - [x] **Floating View** (Always-on-top Monitor)
+    - [x] Live Image Preview & Persistent Regions
+    - [x] Translation Support & 429 Error Handling
+  - [x] **Audio Intelligence**:
+    - [x] Real-time Spectral Visualizer (FFT)
+    - [x] Multi-language Transcription
+  - [x] **Text Studio**:
+    - [x] 3-Pane Engineering Flow (Input -> Applied -> Output)
+  - [x] **Core Enhancements**:
+    - [x] Global Privacy Mode (Hide App)
+    - [x] Robust Geometry & Dependency Fixes
 
 - [ ] **Phase 3: Advanced Data & Persistence**
   - [ ] Vector Database for Semantic Search
