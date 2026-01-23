@@ -137,7 +137,8 @@ class MonitorTab(ctk.CTkFrame):
             if p_height > 300: p_height = 300
             
             ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=(p_width, p_height))
-            self.image_preview.configure(image=ctk_img, text="")
+            self.current_preview_image = ctk_img # Keep reference!
+            self.image_preview.configure(image=self.current_preview_image, text="")
         except Exception as e:
             debug_log(f"Preview Error: {e}")
 

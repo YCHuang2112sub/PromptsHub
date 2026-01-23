@@ -476,20 +476,29 @@ class AlphaMindApp(ctk.CTk):
                 if resp.status_code == 200:
                     res = resp.json()['candidates'][0]['content']['parts'][0]['text']
                     
-                    if "[EXTRACTED_TEXT]" in res and "[ANALYSIS]" in res:
-                        try:
-                            ocr_part = res.split("[EXTRACTED_TEXT]")[1].split("[ANALYSIS]")[0].strip()
-                            ai_part = res.split("[ANALYSIS]")[1].strip()
-                            self.after(0, lambda: tab.update_extracted_text(ocr_part) if hasattr(tab, 'update_extracted_text') else None)
-                            self.after(0, lambda: tab.update_insight(ai_part) if hasattr(tab, 'update_insight') else None)
-                        except:
-                            self.after(0, lambda: tab.update_live_text(res, pane="after") if hasattr(tab, 'update_live_text') else None)
-                    else:
-                        # Route to the appropriate tab depending on where the request came from
-                        self.after(0, lambda: tab.update_live_text(res, pane="after") if hasattr(tab, 'update_live_text') else None)
-                        # If it's the monitor tab, use its specific update method
-                        if hasattr(tab, 'update_insight'):
-                            self.after(0, lambda: tab.update_insight(res))
+                    # Robust parsing with fallbacks
+                    ocr_part = "No text extracted."
+                    ai_part = res
+                    
+                    if "[EXTRACTED_TEXT]" in res:
+                        parts = res.split("[EXTRACTED_TEXT]")
+                        if len(parts) > 1:
+                            content = parts[1]
+                            if "[ANALYSIS]" in content:
+                                ocr_part = content.split("[ANALYSIS]")[0].strip()
+                                ai_part = content.split("[ANALYSIS]")[1].strip()
+                            else:
+                                ocr_part = content.strip()
+                                ai_part = "Analysis not separated."
+                    
+                    # If parsing failed but we have text, try a heuristic or just show it all
+                    if ocr_part == "No text extracted." and res:
+                        # Fallback: Treat whole response as AI insight, but maybe also extracted text
+                        ai_part = res
+                        ocr_part = "(See AI Insights for details)"
+
+                    self.after(0, lambda: tab.update_extracted_text(ocr_part) if hasattr(tab, 'update_extracted_text') else None)
+                    self.after(0, lambda: tab.update_insight(ai_part) if hasattr(tab, 'update_insight') else tab.update_live_text(res, pane="after"))
         except Exception as e:
             debug_log(f"Vision Request Error: {e}")
 
