@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 PromptHub - AlphaMind Edition (v3.0)
 Refactored with CustomTkinter and Modular Architecture.
@@ -300,7 +300,7 @@ class AlphaMindApp(ctk.CTk):
     def create_header(self):
         header_frame = ctk.CTkFrame(self, height=50, corner_radius=0)
         header_frame.pack(fill="x", side="top")
-        self.sidebar_toggle_btn = ctk.CTkButton(header_frame, text="☰ Library", width=120, command=self.toggle_sidebar, fg_color="#3e3e42", hover_color="#555")
+        self.sidebar_toggle_btn = ctk.CTkButton(header_frame, text="? Library", width=120, command=self.toggle_sidebar, fg_color="#3e3e42", hover_color="#555")
         self.sidebar_toggle_btn.pack(side="left", padx=10)
         title_label = ctk.CTkLabel(header_frame, text="PromptHub", font=("Segoe UI", 20, "bold"))
         title_label.pack(side="left", padx=10, pady=10)
@@ -367,7 +367,7 @@ class AlphaMindApp(ctk.CTk):
         debug_log("Applying prompt template from Library")
         self.vision_tab.update_live_text(content, pane="live")
         self.tab_view.set("Vision Studio")
-        self.status_var.set("🚀 Prompt template loaded")
+        self.status_var.set("?? Prompt template loaded")
 
     def start_clipboard_monitor(self):
         debug_log("Starting clipboard monitor thread...")
@@ -436,6 +436,37 @@ class AlphaMindApp(ctk.CTk):
                         self.after(0, lambda: tab.update_insight(res))
         except: pass
 
+    def start_region_monitoring(self):
+        if not hasattr(self, 'region_monitor') or not self.region_monitor:
+            self.region_monitor = RegionMonitorWindow(self)
+            self.status_var.set("Region monitoring active")
+            self.last_region_hash = None
+            self.check_region_change()
+
+    def stop_region_monitoring(self):
+        if hasattr(self, 'region_monitor') and self.region_monitor:
+            try: self.region_monitor.destroy()
+            except: pass
+            self.region_monitor = None
+            self.status_var.set("Region monitoring stopped")
+
+    def check_region_change(self):
+        if hasattr(self, 'region_monitor') and self.region_monitor:
+            try:
+                x, y, w, h = self.region_monitor.winfo_x(), self.region_monitor.winfo_y(), self.region_monitor.winfo_width(), self.region_monitor.winfo_height()
+                self.region_monitor.attributes('-alpha', 0.0)
+                self.update(); img = ImageGrab.grab(bbox=(x, y, x+w, y+h))
+                self.region_monitor.attributes('-alpha', 0.5)
+                hsh = hashlib.md5(img.tobytes()).hexdigest()
+                if hsh != getattr(self, 'last_region_hash', None):
+                    self.after(0, lambda: self.monitor_tab.add_log("?? Change detected. Processing..."))
+                    self.screen_capture_complete(self.monitor_tab, img)
+                    self.extract_text_from_current_image(self.monitor_tab)
+                self.last_region_hash = hsh
+            except: pass
+            self.after(2000, self.check_region_change)
+
+
 class RegionMonitorWindow(tk.Toplevel):
     def __init__(self, parent):
         super().__init__(parent)
@@ -482,45 +513,6 @@ class AudioTranscriptionManager:
 if __name__ == "__main__":
     debug_log("Entry point reached.")
     app = AlphaMindApp()
-    app.region_monitor = None
-    app.last_region_hash = None
-    def check_region():
-    def start_region_monitoring(self):
-        if not self.region_monitor:
-            self.region_monitor = RegionMonitorWindow(self)
-            self.status_var.set("Region monitoring active")
-            self.check_region_change()
-
-    def stop_region_monitoring(self):
-        if self.region_monitor:
-            try: self.region_monitor.destroy()
-            except: pass
-            self.region_monitor = None
-            self.status_var.set("Region monitoring stopped")
-
-    def check_region_change(self):
-        if self.region_monitor:
-            try:
-                x, y, w, h = self.region_monitor.winfo_x(), self.region_monitor.winfo_y(), self.region_monitor.winfo_width(), self.region_monitor.winfo_height()
-                self.region_monitor.attributes('-alpha', 0.0)
-                self.update(); img = ImageGrab.grab(bbox=(x, y, x+w, y+h))
-                self.region_monitor.attributes('-alpha', 0.5)
-                hsh = hashlib.md5(img.tobytes()).hexdigest()
-                if hsh != self.last_region_hash:
-                    self.after(0, lambda: self.monitor_tab.add_log("📸 Change detected. Processing..."))
-                    self.screen_capture_complete(self.monitor_tab, img)
-                    self.extract_text_from_current_image(self.monitor_tab)
-                self.last_region_hash = hsh
-            except: pass
-            self.after(2000, self.check_region_change)
-
-if __name__ == "__main__":
-    debug_log("Entry point reached.")
-    app = AlphaMindApp()
-    app.region_monitor = None
-    app.last_region_hash = None
     app.audio_manager = AudioTranscriptionManager(app)
-    debug_log("Starting mainloop...")
-    app.mainloop()
     debug_log("Starting mainloop...")
     app.mainloop()
