@@ -23,6 +23,23 @@ class MonitorTab(ctk.CTkFrame):
         self.monitor_status = ctk.CTkLabel(header, text="Inactive", text_color="gray")
         self.monitor_status.pack(side="left", padx=15)
         
+        # Language Selection for Translation
+        self.langs = {
+            "Original": None,
+            "English": "en-US",
+            "Chinese (Simplified)": "zh-CN",
+            "Chinese (Traditional)": "zh-TW",
+            "Japanese": "ja-JP",
+            "Korean": "ko-KR",
+            "French": "fr-FR",
+            "German": "de-DE",
+            "Spanish": "es-ES"
+        }
+        self.lang_var = ctk.StringVar(value="Original")
+        ctk.CTkLabel(header, text="Translate to:", font=("Segoe UI", 10)).pack(side="left", padx=(15, 5))
+        self.lang_menu = ctk.CTkOptionMenu(header, values=list(self.langs.keys()), variable=self.lang_var, width=150)
+        self.lang_menu.pack(side="left", padx=5)
+        
         # 📜 Dual Column Content
         self.content = ctk.CTkFrame(self, fg_color="transparent")
         self.content.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))

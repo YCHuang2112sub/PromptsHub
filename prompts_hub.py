@@ -235,6 +235,7 @@ class AlphaMindApp(ctk.CTk):
         self.geometry("1100x700")
         self.db = DatabaseManager()
         self.status_var = tk.StringVar(value="AlphaMind Ready")
+        self.vision_cooldown = 0
         self.is_processing = False
         self.llm_prompt = "Refine the following text to be more professional, concise, and clear:\n\n{text}"
         debug_log("Detecting LLM provider...")
@@ -415,6 +416,10 @@ class AlphaMindApp(ctk.CTk):
     def initiate_screen_capture_for_monitor(self):
         # Stop existing monitoring before selecting a new region
         self.stop_region_monitoring()
+        # Explicitly clear old region so user must drag new one
+        if hasattr(self, 'last_selected_region'):
+            del self.last_selected_region
+        self.monitor_tab.image_preview.configure(image=None, text="Drag to select region...")
         # Specific trigger for the monitor tab
         self.initiate_screen_capture(self.monitor_tab)
 
@@ -429,10 +434,20 @@ class AlphaMindApp(ctk.CTk):
 
     def extract_text_from_current_image(self, tab):
         if hasattr(tab, 'current_image') and tab.current_image:
+            prompt = "Extract text"
+            if hasattr(tab, 'lang_var') and tab.lang_var.get() != "Original":
+                target_lang = tab.lang_var.get()
+                prompt = f"Extract text from this image and translate it to {target_lang}. Return both original and translation."
+            
             # Pass the tab itself to route the result back
-            self.process_vision_request(tab.current_image, tab=tab)
+            self.process_vision_request(tab.current_image, tab=tab, prompt_text=prompt)
 
     def process_vision_request(self, image, tab=None, prompt_text="Extract text", is_chat=False):
+        if hasattr(self, 'vision_cooldown') and self.vision_cooldown > 0:
+            if tab == self.monitor_tab:
+                self.monitor_tab.add_log(f"⏳ Throttled: API rate limit hit. Retrying in {self.vision_cooldown*2}s...")
+                return
+
         try:
             import io, base64
             buffered = io.BytesIO()
@@ -442,6 +457,13 @@ class AlphaMindApp(ctk.CTk):
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={self.llm_api_key}"
                 data = {"contents": [{"parts": [{"text": prompt_text}, {"inline_data": {"mime_type": "image/png", "data": img_b64}}]}]}
                 resp = requests.post(url, json=data)
+                
+                if resp.status_code == 429:
+                    self.vision_cooldown = 10 # 10 cycles (20 seconds)
+                    if tab == self.monitor_tab:
+                        self.monitor_tab.add_log("⚠️ API Rate Limit (429) - Pausing monitoring for 20s.")
+                    return
+
                 if resp.status_code == 200:
                     res = resp.json()['candidates'][0]['content']['parts'][0]['text']
                     # Route to the appropriate tab depending on where the request came from
@@ -449,7 +471,8 @@ class AlphaMindApp(ctk.CTk):
                     # If it's the monitor tab, use its specific update method
                     if hasattr(tab, 'update_insight'):
                         self.after(0, lambda: tab.update_insight(res))
-        except: pass
+        except Exception as e:
+            debug_log(f"Vision Request Error: {e}")
 
     def start_region_monitoring(self):
         if not hasattr(self, 'last_selected_region') or not self.last_selected_region:
@@ -477,6 +500,9 @@ class AlphaMindApp(ctk.CTk):
             self.status_var.set("Region monitoring stopped")
 
     def check_region_change(self):
+        if hasattr(self, 'vision_cooldown') and self.vision_cooldown > 0:
+            self.vision_cooldown -= 1
+
         if hasattr(self, 'region_monitor') and self.region_monitor:
             try:
                 x, y, w, h = self.region_monitor.winfo_x(), self.region_monitor.winfo_y(), self.region_monitor.winfo_width(), self.region_monitor.winfo_height()
