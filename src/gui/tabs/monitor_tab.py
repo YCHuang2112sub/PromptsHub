@@ -35,10 +35,20 @@ class MonitorTab(ctk.CTkFrame):
         self.log_text = ctk.CTkTextbox(self.content, font=("Consolas", 11), border_width=1, border_color="#333")
         self.log_text.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
         
-        # column 1: Insights
-        ctk.CTkLabel(self.content, text="LLM INSIGHTS", font=("Segoe UI", 10, "bold"), text_color="gray").grid(row=0, column=1, sticky="w", padx=5)
-        self.insight_text = ctk.CTkTextbox(self.content, font=("Segoe UI", 12), border_width=1, border_color="#333")
-        self.insight_text.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
+        # column 1: Insights & Capture Preview
+        right_panel = ctk.CTkFrame(self.content, fg_color="transparent")
+        right_panel.grid(row=0, column=1, rowspan=2, sticky="nsew", padx=5)
+        right_panel.grid_columnconfigure(0, weight=1)
+        right_panel.grid_rowconfigure(1, weight=1)
+        
+        ctk.CTkLabel(right_panel, text="LIVE PREVIEW", font=("Segoe UI", 10, "bold"), text_color="gray").grid(row=0, column=0, sticky="w", padx=5)
+        
+        self.image_preview = ctk.CTkLabel(right_panel, text="No Region Selected", fg_color="#1a1a1a", height=150)
+        self.image_preview.grid(row=1, column=0, sticky="nsew", padx=5, pady=(5, 10))
+        
+        ctk.CTkLabel(right_panel, text="LLM INSIGHTS", font=("Segoe UI", 10, "bold"), text_color="gray").grid(row=2, column=0, sticky="w", padx=5)
+        self.insight_text = ctk.CTkTextbox(right_panel, font=("Segoe UI", 12), border_width=1, border_color="#333")
+        self.insight_text.grid(row=3, column=0, sticky="nsew", padx=5, pady=5)
         
         self.log_text.insert("1.0", "--- Monitor Ready ---\n1. Click 'Select Region' to target a screen area.\n2. Click 'Start Monitoring' for auto-capture.\n")
         self.insight_text.insert("1.0", "--- AI Analysis results will appear here ---")
@@ -66,7 +76,22 @@ class MonitorTab(ctk.CTkFrame):
     def set_captured_image(self, img):
         """Called when a region is selected for monitoring"""
         self.current_image = img
-        self.add_log(f"📍 Region selected: {img.width}x{img.height}")
+        self.add_log(f"📸 Snapshot: {img.width}x{img.height}")
+        
+        # Update Preview
+        try:
+            # Scale image for preview while maintaining aspect ratio
+            aspect = img.width / img.height
+            p_width = 300
+            p_height = int(p_width / aspect)
+            if p_height > 200:
+                p_height = 200
+                p_width = int(p_height * aspect)
+                
+            ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=(p_width, p_height))
+            self.image_preview.configure(image=ctk_img, text="")
+        except Exception as e:
+            debug_log(f"Preview Error: {e}")
 
     def update_live_text(self, text, pane="live"):
         self.update_insight(text)

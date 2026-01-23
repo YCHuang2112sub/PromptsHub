@@ -214,10 +214,17 @@ class ScreenSelector(tk.Toplevel):
         # Convert canvas coords to screen coords
         sx1, sy1 = self.winfo_rootx() + x1, self.winfo_rooty() + y1
         sx2, sy2 = self.winfo_rootx() + x2, self.winfo_rooty() + y2
+        
+        # Withdraw immediately to capture what's underneath
         self.withdraw()
         import time; time.sleep(0.2)
-        img = ImageGrab.grab(bbox=(min(sx1,sx2), min(sy1,sy2), max(sx1,sx2), max(sy1,sy2)))
-        self.callback(img)
+        
+        # Calculate bbox
+        bx1, by1, bx2, by2 = min(sx1, sx2), min(sy1, sy2), max(sx1, sx2), max(sy1, sy2)
+        img = ImageGrab.grab(bbox=(bx1, by1, bx2, by2))
+        
+        # Return image and coordinates
+        self.callback((img, (bx1, by1, bx2 - bx1, by2 - by1)))
         self.destroy()
 
 class AlphaMindApp(ctk.CTk):
@@ -406,11 +413,19 @@ class AlphaMindApp(ctk.CTk):
         ScreenSelector(lambda img: self.screen_capture_complete(tab, img))
 
     def initiate_screen_capture_for_monitor(self):
+        # Stop existing monitoring before selecting a new region
+        self.stop_region_monitoring()
         # Specific trigger for the monitor tab
         self.initiate_screen_capture(self.monitor_tab)
 
-    def screen_capture_complete(self, tab, img):
-        tab.set_captured_image(img)
+    def screen_capture_complete(self, tab, result):
+        if isinstance(result, tuple):
+            img, coords = result
+            if tab == self.monitor_tab:
+                self.last_selected_region = coords
+            tab.set_captured_image(img)
+        else:
+            tab.set_captured_image(result)
 
     def extract_text_from_current_image(self, tab):
         if hasattr(tab, 'current_image') and tab.current_image:
@@ -439,6 +454,13 @@ class AlphaMindApp(ctk.CTk):
     def start_region_monitoring(self):
         if not hasattr(self, 'region_monitor') or not self.region_monitor:
             self.region_monitor = RegionMonitorWindow(self)
+            
+            # Use the last dragged area if available
+            if hasattr(self, 'last_selected_region'):
+                x, y, w, h = self.last_selected_region
+                self.region_monitor.geometry(f"{w}x{h}+{x}+{y}")
+                self.monitor_tab.add_log(f"📍 Resuming region: {w}x{h} at {x},{y}")
+            
             self.status_var.set("Region monitoring active")
             self.last_region_hash = None
             self.check_region_change()

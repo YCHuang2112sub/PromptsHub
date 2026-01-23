@@ -35,6 +35,22 @@ class AudioTab(ctk.CTkFrame):
         self.send_btn = ctk.CTkButton(header, text="📤 Send to AI", width=120, state="disabled", command=self.send_audio)
         self.send_btn.pack(side="left", padx=5)
         
+        # Language Selection
+        self.langs = {
+            "English": "en-US",
+            "Chinese (Simplified)": "zh-CN",
+            "Chinese (Traditional)": "zh-TW",
+            "Japanese": "ja-JP",
+            "Korean": "ko-KR",
+            "French": "fr-FR",
+            "German": "de-DE",
+            "Spanish": "es-ES"
+        }
+        self.lang_var = ctk.StringVar(value="English")
+        ctk.CTkLabel(header, text="Target Language:", font=("Segoe UI", 10)).pack(side="left", padx=(15, 5))
+        self.lang_menu = ctk.CTkOptionMenu(header, values=list(self.langs.keys()), variable=self.lang_var, width=150)
+        self.lang_menu.pack(side="left", padx=5)
+        
         # 📊 Visualizer (Canvas)
         self.viz_canvas = ctk.CTkCanvas(header, width=200, height=40, bg="#1e1e1e", highlightthickness=0)
         self.viz_canvas.pack(side="right", padx=20)
@@ -135,9 +151,10 @@ class AudioTab(ctk.CTkFrame):
         try:
             import speech_recognition as sr
             r = sr.Recognizer()
+            lang_code = self.langs.get(self.lang_var.get(), "en-US")
             with sr.AudioFile(temp_name) as source:
                 audio = r.record(source)
-                text = r.recognize_google(audio)
+                text = r.recognize_google(audio, language=lang_code)
                 self.app.after(0, lambda: self.update_transcription(text))
                 # Also auto-enchant if text is long enough? Or just wait for user
                 self.app.after(0, lambda: self.app.start_llm_processing(text, target_pane="audio_insight"))
