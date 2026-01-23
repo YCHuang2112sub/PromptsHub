@@ -469,12 +469,18 @@ class AlphaMindApp(ctk.CTk):
                 
                 if resp.status_code == 429:
                     self.vision_cooldown = 10 # 10 cycles (20 seconds)
+                    msg = "⚠️ API Rate Limit (429) - Pausing monitoring for 20s."
                     if tab == self.monitor_tab:
-                        self.monitor_tab.add_log("⚠️ API Rate Limit (429) - Pausing monitoring for 20s.")
+                        self.monitor_tab.add_log(msg)
+                        if hasattr(tab, 'update_extracted_text'):
+                             tab.update_extracted_text(msg)
+                        if hasattr(tab, 'update_insight'):
+                             tab.update_insight(msg)
                     return
 
                 if resp.status_code == 200:
                     res = resp.json()['candidates'][0]['content']['parts'][0]['text']
+                    debug_log(f"LLM Response ({len(res)} chars): {res[:50]}...")
                     
                     # Robust parsing with fallbacks
                     ocr_part = "No text extracted."
