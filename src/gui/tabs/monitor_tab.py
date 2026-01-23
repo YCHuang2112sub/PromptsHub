@@ -59,21 +59,21 @@ class MonitorTab(ctk.CTkFrame):
         self.log_text = ctk.CTkTextbox(self.content, font=("Consolas", 11), border_width=1, border_color="#333")
         self.log_text.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
         
-        # column 1: Extracted Text
-        ctk.CTkLabel(self.content, text="EXTRACTED TEXT", font=("Segoe UI", 10, "bold"), text_color="gray").grid(row=0, column=1, sticky="w", padx=5)
-        self.extracted_text_pane = ctk.CTkTextbox(self.content, font=("Segoe UI", 12), border_width=1, border_color="#333")
-        self.extracted_text_pane.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
+        # column 1: Live Preview (Visuals)
+        ctk.CTkLabel(self.content, text="LIVE PREVIEW", font=("Segoe UI", 10, "bold"), text_color="gray").grid(row=0, column=1, sticky="w", padx=5)
+        self.image_preview = ctk.CTkLabel(self.content, text="No Region Selected", fg_color="#1a1a1a")
+        self.image_preview.grid(row=1, column=1, sticky="nsew", padx=5, pady=5)
 
-        # column 2: Insights & Capture Preview
+        # column 2: Intelligence (Extracted Text + Insights)
         right_panel = ctk.CTkFrame(self.content, fg_color="transparent")
         right_panel.grid(row=0, column=2, rowspan=2, sticky="nsew", padx=5)
         right_panel.grid_columnconfigure(0, weight=1)
-        right_panel.grid_rowconfigure(1, weight=0) # Preview fixed height
-        right_panel.grid_rowconfigure(3, weight=1) # Insights expandable
+        right_panel.grid_rowconfigure(1, weight=1) # OCR
+        right_panel.grid_rowconfigure(3, weight=1) # Insight
         
-        ctk.CTkLabel(right_panel, text="LIVE PREVIEW", font=("Segoe UI", 10, "bold"), text_color="gray").grid(row=0, column=0, sticky="w", padx=5)
-        self.image_preview = ctk.CTkLabel(right_panel, text="No Region Selected", fg_color="#1a1a1a", height=120)
-        self.image_preview.grid(row=1, column=0, sticky="nsew", padx=5, pady=(5, 10))
+        ctk.CTkLabel(right_panel, text="EXTRACTED TEXT", font=("Segoe UI", 10, "bold"), text_color="gray").grid(row=0, column=0, sticky="w", padx=5)
+        self.extracted_text_pane = ctk.CTkTextbox(right_panel, font=("Segoe UI", 12), border_width=1, border_color="#333", height=150)
+        self.extracted_text_pane.grid(row=1, column=0, sticky="nsew", padx=5, pady=(5, 10))
         
         ctk.CTkLabel(right_panel, text="LLM INSIGHTS", font=("Segoe UI", 10, "bold"), text_color="gray").grid(row=2, column=0, sticky="w", padx=5)
         self.insight_text = ctk.CTkTextbox(right_panel, font=("Segoe UI", 12), border_width=1, border_color="#333")
@@ -127,12 +127,15 @@ class MonitorTab(ctk.CTkFrame):
         self.current_image = img
         self.add_log(f"📸 Snapshot: {img.width}x{img.height}")
         try:
+            # Dynamically size the image to fit the center pane
+            # We'll use a fixed request size for now or adaptive
             aspect = img.width / img.height
-            p_width = 250
+            p_width = 300
             p_height = int(p_width / aspect)
-            if p_height > 120:
-                p_height = 120
-                p_width = int(p_height * aspect)
+            # Max dimensions
+            if p_width > 400: p_width = 400
+            if p_height > 300: p_height = 300
+            
             ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=(p_width, p_height))
             self.image_preview.configure(image=ctk_img, text="")
         except Exception as e:
