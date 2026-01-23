@@ -411,7 +411,7 @@ class AlphaMindApp(ctk.CTk):
 
     def initiate_screen_capture(self, tab):
         debug_log("Initiating screen capture...")
-        ScreenSelector(lambda img: self.screen_capture_complete(tab, img))
+        ScreenSelector(lambda img: self.after(100, lambda: self.screen_capture_complete(tab, img)))
 
     def initiate_screen_capture_for_monitor(self):
         # Stop existing monitoring before selecting a new region
@@ -435,18 +435,21 @@ class AlphaMindApp(ctk.CTk):
     def extract_text_from_current_image(self, tab):
         if hasattr(tab, 'current_image') and tab.current_image:
             target_lang = tab.lang_var.get() if hasattr(tab, 'lang_var') else "Original"
-            prompt = (
-                "1. Extract all text from this image exactly as it appears.\n"
-                "2. Provide a professional analysis or summary."
-            )
-            if target_lang != "Original":
-                prompt += f"\n3. Translate the analysis/summary to {target_lang}."
+            prompt = "Extract all visible text from this image exactly as it appears. Do not provide any description, analysis, or summary."
             
-            prompt += (
-                "\n\nIMPORTANT: Format your response exactly as follows:\n"
-                "[EXTRACTED_TEXT]\n(raw extracted text here)\n"
-                "[ANALYSIS]\n(your analysis or translation here)"
-            )
+            if target_lang != "Original":
+                prompt += f"\nThen, translate the extracted text to {target_lang}."
+                prompt += (
+                    "\n\nIMPORTANT: Format your response exactly as follows:\n"
+                    "[EXTRACTED_TEXT]\n(raw extracted text from image)\n"
+                    "[ANALYSIS]\n(the translated text)"
+                )
+            else:
+                prompt += (
+                    "\n\nIMPORTANT: Format your response exactly as follows:\n"
+                    "[EXTRACTED_TEXT]\n(raw extracted text from image)\n"
+                    "[ANALYSIS]\n(No analysis requested)"
+                )
             
             # Pass the tab itself to route the result back
             self.process_vision_request(tab.current_image, tab=tab, prompt_text=prompt)

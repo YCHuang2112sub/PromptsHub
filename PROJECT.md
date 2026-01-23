@@ -4,7 +4,7 @@
 **PromptsHub**, codenamed **AlphaMind**, is a stylish, modern interface for intelligent prompt management and LLM interaction. It combines clipboard monitoring, screen OCR, and direct AI integration into a unified "Alicization" vision of human-AI symbiosis.
 
 ## Current Status
-**Version**: v2.0 "AlphaMind"
+**Version**: v3.3.4 "AlphaMind Studio"
 **State**: ✅ Stable / 🚧 Active Development
 
 - [x] **Phase 1: Stabilization & Core Integration**
@@ -19,6 +19,7 @@
     - [x] **Floating View** (Always-on-top Monitor)
     - [x] Live Image Preview & Persistent Regions
     - [x] Translation Support & 429 Error Handling
+    - [x] Rate Limiting Slider & Text Extraction Refinement
   - [x] **Audio Intelligence**:
     - [x] Real-time Spectral Visualizer (FFT)
     - [x] Multi-language Transcription

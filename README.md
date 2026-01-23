@@ -1,6 +1,6 @@
-﻿#  PromptsHub: AlphaMind Edition (v3.0)
+﻿#  PromptsHub: AlphaMind Edition (v3.3.4)
 
-> **Codename**: AlphaMind | **Vision**: Alicization | **Status**: Active Symbiosis
+> **Codename**: AlphaMind Studio | **Vision**: Alicization | **Status**: Active Symbiosis
 
 PromptsHub is a high-performance workspace for AI-human collaboration. It transforms your desktop into an intelligent environment that captures, processes, and reverse-engineers text and vision in real-time.
 
@@ -13,16 +13,22 @@ PromptsHub is a high-performance workspace for AI-human collaboration. It transf
 - **Side-by-Side Editor**: Real-time comparison view showing original input vs. AI-processed output.
 - **Screen OCR**: Extract text from any screen area using Gemini Vision APIs.
 - **Vision Chat**: Upload images or screenshots and ask the AI complex questions about them.
-- **Smart Region Monitor**: 
-  - Place a floating window over any area (e.g., a code editor, a chat, or a video).
-  - The system auto-detects changes and triggers OCR/Analysis instantly.
+- **Monitor Studio (New)**: 
+  - **3-Column Layout**: Dedicated panes for Activity Logs, Live Preview, and AI Intelligence.
+  - **Persistent Region**: Remembers your selection; drag to update instantly.
+  - **Floating View**: Detach the monitor into an always-on-top window for multitasking.
+  - **Smart Rate Limiting**: Adjustable polling slider (2s-30s) and auto-pause on API limits (429).
+  - **Translation & Insights**: Extract raw text or automatically translate/analyze changes.
 - **Privacy Mode (Default-ON)**: Prevents the application window from being captured in its own screenshots/recordings.
 
 ###  Intelligence Suite
 - **Multi-Provider Support**: Seamless switching between **Gemini 2.5 Flash**, **GPT-4**, and **Claude 3**.
 - ** Extract Prompt**: Reverse-engineer any text output into a reusable prompt template with `["Input"]` placeholders.
 - **"Enchant"**: Instantly polish, professionalize, or transform text using pre-built AI templates.
-- **Audio Intelligence**: Real-time system audio transcription directly into your workspace.
+- **Audio Studio**: 
+  - Real-time system audio transcription directly into your workspace.
+  - **Live Visualizer**: FFT-based spectral display for audio activity.
+  - **Multi-Language Support**: Transcribe in different languages on the fly.
 
 ###  Prompt Library & Management
 - **Foldable Sidebar**: Always-accessible prompt library for side-by-side editing and template application.
