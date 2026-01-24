@@ -1,8 +1,17 @@
-﻿#  PromptsHub: AlphaMind Edition (v3.3.4)
+﻿[![☕ Buy me a coffee](https://img.shields.io/badge/☕-Buy%20me%20a%20coffee-orange.svg?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/yuchenghuang)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
+
+
+
+#  PromptsHub: AlphaMind Edition (v3.3.4)
 
 > **Codename**: AlphaMind Studio | **Vision**: Alicization | **Status**: Active Symbiosis
 
 PromptsHub is a high-performance workspace for AI-human collaboration. It transforms your desktop into an intelligent environment that captures, processes, and reverse-engineers text and vision in real-time.
+
+![AlphaMind Main Interface](image/main_interface.png)
+*The AlphaMind V3.3.4 Studio Interface featuring the multi-pane development environment.*
 
 ---
 
